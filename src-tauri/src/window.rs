@@ -106,7 +106,9 @@ pub fn setup(app: &mut tauri::App) -> Result<(), String> {
         minimize_app(app.handle().clone(), TrayLabels::default())?;
         emit_app_event(app.handle(), "launcher-started-minimized", Value::Null);
     } else {
-        show_window(app.handle(), &window)?;
+        // Shown from `window_ready` (Electron's ready-to-show): showing a WKWebView
+        // before its first layout leaves it stuck "hidden" and painting white.
+        let _ = window;
     }
     Ok(())
 }
@@ -143,7 +145,7 @@ pub fn create_main_window(app: &AppHandle) -> Result<WebviewWindow, String> {
         builder.initialization_script(include_str!("dev-console.js"))
     } else { builder };
     // KEEWEB_DEV_SMOKE=<file.js>: injected into the webview for scripted smoke tests (debug only).
-    let builder = match std::env::var_os("KEEWEB_DEV_SMOKE").filter(|_| cfg!(debug_assertions)) {
+    let builder = match std::env::var_os("KEEWEB_DEV_SMOKE").filter(|_| cfg!(debug_assertions) || std::env::var_os("KEEWEB_STARTUP_LOGGING").is_some()) {
         Some(path) => builder.initialization_script(std::fs::read_to_string(path).map_err(|err| err.to_string())?),
         None => builder,
     };
@@ -375,8 +377,11 @@ pub fn set_has_open_files(app: AppHandle, shell: State<'_, Shell>, has_open_file
 
 #[tauri::command]
 pub fn window_ready(app: AppHandle) -> Result<(), String> {
-    main_window(&app)?;
+    let window = main_window(&app)?;
     let shell = app.state::<Shell>();
+    if !shell.hidden_in_tray.load(Ordering::SeqCst) && !window.is_visible().unwrap_or(true) {
+        show_window(&app, &window)?;
+    }
     let events = {
         let mut pending = shell.pending_events.lock().map_err(|err| err.to_string())?;
         shell.window_ready.store(true, Ordering::SeqCst);
@@ -475,19 +480,11 @@ pub fn show_main_window(app: AppHandle) -> Result<(), String> {
             // WebView2 creation deadlocks in synchronous commands and event callbacks.
             let app = handle.clone();
             std::thread::spawn(move || {
-                let created = create_main_window(&app);
+                // The new window is shown from `window_ready` once the page has rendered.
+                let created = create_main_window(&app).map(|_| ());
                 app.state::<WindowState>().creating.store(false, Ordering::SeqCst);
-                // Tray removal (NSStatusItem) and activation must happen on the main thread.
-                let handle = app.clone();
-                let result = created.and_then(|window| {
-                    handle.run_on_main_thread(move || {
-                        if let Err(err) = show_window(&app, &window) {
-                            emit_app_event(&app, "log", json!(err));
-                        }
-                    }).map_err(|err| err.to_string())
-                });
-                if let Err(err) = result {
-                    emit_app_event(&handle, "log", json!(err));
+                if let Err(err) = created {
+                    emit_app_event(&app, "log", json!(err));
                 }
             });
         }

@@ -55,7 +55,7 @@ pub fn block_network(window: &WebviewWindow) {
 
     let dev = if cfg!(debug_assertions) { r#",{"trigger":{"url-filter":"^http://localhost:8085/"},"action":{"type":"ignore-previous-rules"}}"# } else { "" };
     let rules = format!(
-        r#"[{{"trigger":{{"url-filter":".*"}},"action":{{"type":"block"}}}},{{"trigger":{{"url-filter":"^tauri://localhost/"}},"action":{{"type":"ignore-previous-rules"}}}},{{"trigger":{{"url-filter":"^ipc://localhost/"}},"action":{{"type":"ignore-previous-rules"}}}},{{"trigger":{{"url-filter":"^http://ipc\\.localhost/"}},"action":{{"type":"ignore-previous-rules"}}}}{dev}]"#
+        r#"[{{"trigger":{{"url-filter":".*"}},"action":{{"type":"block"}}}},{{"trigger":{{"url-filter":"^tauri://localhost"}},"action":{{"type":"ignore-previous-rules"}}}},{{"trigger":{{"url-filter":"^ipc://localhost"}},"action":{{"type":"ignore-previous-rules"}}}},{{"trigger":{{"url-filter":"^http://ipc\\.localhost/"}},"action":{{"type":"ignore-previous-rules"}}}}{dev}]"#
     );
     let result = window.with_webview(move |webview| unsafe {
         let wk: &AnyObject = &*(webview.inner().cast::<AnyObject>());
