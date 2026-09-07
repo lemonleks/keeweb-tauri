@@ -82,9 +82,6 @@
         overflow: hidden;
         border-collapse: collapse;
         table-layout: fixed;
-        tr.select-entry__item {
-            border-right-width: 3px;
-        }
         td,
         th {
             padding: $base-padding;

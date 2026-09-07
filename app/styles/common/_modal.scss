@@ -1,67 +1,87 @@
+// Alerts: a centered sheet on a dimmed scrim (NSAlert grammar).
 .modal {
     @include position(absolute, 0 null null 0);
     @include size(100%);
-    background-color: var(--modal-background-color);
+    background-color: rgba(0, 0, 0, 0.25);
     z-index: $z-index-modal;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-    transition: background-color $base-duration $base-timing;
     &.modal--hidden {
-        background-color: var(--modal-background-color-tr);
+        display: none;
     }
 
     &.modal--opaque {
-        background-color: var(--background-color);
+        background-color: var(--mac-bg-under-page);
     }
 
     &__content {
-        @include size(100%);
         display: flex;
-        align-items: stretch;
         flex-direction: column;
-        justify-content: center;
-
-        transition: all $base-duration $base-timing;
-        .modal--hidden & {
-            transform: scale(0.01);
-            opacity: 0;
+        align-items: stretch;
+        width: 420px;
+        max-width: calc(100% - 64px);
+        max-height: calc(100% - 64px);
+        overflow: auto;
+        padding: 20px 20px 16px;
+        border-radius: var(--mac-radius-lg);
+        background-color: var(--mac-bg-content);
+        box-shadow: var(--mac-shadow-popover);
+        .modal--wide & {
+            width: 640px;
+        }
+        .modal--opaque & {
+            box-shadow: none;
         }
     }
 
     &__icon {
-        font-size: $modal-icon-size;
+        font-size: 40px;
+        line-height: 1;
         text-align: center;
+        color: var(--mac-accent);
+        margin-bottom: 12px;
+        .modal--error & {
+            color: var(--mac-destructive);
+        }
     }
     &__header {
         user-select: text;
         text-align: center;
-        font-size: $small-header-font-size;
+        font-size: var(--mac-text-headline);
+        font-weight: 600;
+        margin-bottom: 4px;
     }
     &__body {
         user-select: text;
-        text-align: left;
-        margin: $base-spacing;
+        text-align: center;
+        font-size: var(--mac-text-caption);
+        color: var(--mac-label-2);
+        margin: 0 0 16px;
+        line-height: 1.4;
     }
     &__buttons {
-        text-align: right;
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-start;
+        gap: 8px;
         > button {
-            margin-bottom: $small-spacing;
-        }
-    }
-    &__body,
-    &__buttons {
-        align-self: center;
-        width: 40%;
-        .modal--wide & {
-            width: 80%;
-        }
-        @include tablet {
-            width: 90%;
+            margin: 0;
+            flex: 1 1 0;
         }
     }
     &__check-wrap {
-        margin-top: $base-spacing;
+        margin-top: $small-spacing;
+        text-align: left;
     }
     &__pre {
         white-space: pre-wrap;
+        text-align: left;
+        font-family: var(--mac-font-mono);
+        font-size: var(--mac-text-caption);
+        background: var(--mac-bg-grouped);
+        border-radius: var(--mac-radius-sm);
+        padding: 8px;
     }
 }

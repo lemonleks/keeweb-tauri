@@ -1,6 +1,6 @@
 const DefaultAppSettings = {
     theme: null, // UI theme
-    autoSwitchTheme: false, // automatically switch between light and dark theme
+    autoSwitchTheme: true, // follow the system appearance
     locale: null, // user interface language
     expandGroups: true, // show entries from all subgroups
     listViewWidth: null, // width of the entry list representation

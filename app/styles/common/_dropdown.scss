@@ -1,33 +1,38 @@
+// Menus / popovers: glass, 11px radius, popover shadow.
 .dropdown {
     position: absolute;
     z-index: $z-index-no-modal;
-    border-radius: var(--block-border-radius);
-    background: var(--background-color);
-    border: light-border();
-    box-shadow: dropdown-box-shadow();
-    padding: $tiny-spacing;
+    border-radius: var(--mac-radius-md);
+    @include mac-glass;
+    padding: 5px;
+    min-width: 160px;
     &__item {
-        padding: 8px 12px;
-        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: var(--mac-control-h);
+        padding: 0 10px;
+        cursor: default;
         white-space: nowrap;
-        border-radius: var(--block-border-radius);
+        border-radius: var(--mac-radius-xs);
+        font-size: var(--mac-text-body);
+        color: var(--mac-label);
         &--active,
         &--active:hover {
-            @include area-selected();
+            background-color: var(--mac-accent);
+            color: var(--mac-on-accent);
         }
         @include nomobile {
-            @include area-selectable();
             &:hover {
-                color: var(--selected-item-text-color);
-                background-color: var(--action-color);
-            }
-            &--active,
-            &--active:hover {
-                @include area-selected();
+                background-color: var(--mac-accent);
+                color: var(--mac-on-accent);
             }
         }
         &-icon {
-            width: 1.6em;
+            width: 16px;
+            text-align: center;
+            color: inherit;
+            opacity: 0.8;
         }
     }
 }

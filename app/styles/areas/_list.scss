@@ -1,3 +1,4 @@
+// Entry list: native search field on top, 44px two-line rows, inset accent selection.
 .list {
     flex: 1;
     display: flex;
@@ -22,6 +23,8 @@
             align-self: stretch;
             position: relative;
             overflow-x: hidden;
+            padding-bottom: 64px; // room for the floating footer
+            box-sizing: border-box;
             @include mobile {
                 width: 100% !important;
                 max-width: 100% !important;
@@ -30,75 +33,69 @@
     }
 
     &__search {
-        padding: $small-spacing;
+        padding: 20px 12px 8px;
+        -webkit-app-region: drag;
 
         &-header {
             display: flex;
-            align-items: stretch;
+            align-items: center;
             flex-direction: row;
             justify-content: flex-start;
             flex-wrap: wrap;
-            @include mobile {
-                font-size: 1.2em;
-            }
+            gap: 6px;
+            -webkit-app-region: no-drag;
         }
         &-field-wrap {
             flex: 1;
             position: relative;
-            margin-right: $small-spacing;
         }
         &-field {
             width: 100%;
-            height: 2.5em;
+            height: var(--mac-control-h-large);
+            margin: 0;
+            border-radius: var(--mac-radius-sm);
+            background-color: var(--mac-field-bg);
             @include mobile {
                 font-size: 1.05em !important;
-                box-shadow: none !important;
-                border-radius: 0.6em !important;
-                border: none !important;
-                background-color: var(--secondary-background-color) !important;
             }
         }
         &-icon-search,
         &-icon-clear {
-            color: var(--muted-color);
+            color: var(--mac-label-2);
             position: absolute;
-            top: 0.53em;
-            cursor: pointer;
+            top: 0;
+            height: var(--mac-control-h-large);
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            cursor: default;
+            font-size: 12px;
             &:hover {
-                color: var(--medium-color);
-            }
-            @include mobile {
-                top: 0.6em;
+                color: var(--mac-label);
             }
         }
         &-icon-search {
-            left: 0.6em;
+            left: 8px;
+            > .fa-caret-down {
+                font-size: 10px;
+                color: var(--mac-label-3);
+            }
         }
         &-icon-clear {
-            right: 0.6em;
+            right: 6px;
             display: none;
             .list__search-field-wrap--text & {
-                display: block;
+                display: flex;
             }
         }
         &-btn-new,
         &-btn-sort {
-            @include icon-btn;
-            height: 2.5em;
-            line-height: 2.3em;
-            padding: 0 $base-padding-h;
+            @include mac-icon-btn(28px);
         }
         &-btn-menu {
             display: none;
             @include mobile {
-                display: block;
-                @include area-selectable;
-                padding: 0.7em 0.6em 0;
-                height: 1.6em;
-                margin-right: $base-padding-h;
-                > i {
-                    display: block;
-                }
+                @include mac-icon-btn(28px);
             }
         }
         &-adv {
@@ -107,14 +104,18 @@
             align-items: stretch;
             flex-direction: row;
             flex-wrap: wrap;
-            padding: 0 $small-spacing;
+            padding: 8px 4px 0;
             &-text {
                 flex: 100%;
-                padding: $base-padding-v 0;
+                padding: 8px 0 4px;
+                font-size: var(--mac-text-caption);
+                font-weight: 600;
+                color: var(--mac-label-2);
             }
         }
         &-check {
             flex: 50%;
+            padding: 3px 0;
         }
     }
 
@@ -126,27 +127,36 @@
             display: flex;
             align-items: center;
             width: 100%;
+            height: var(--mac-row-h);
+            &:nth-child(even) {
+                background-color: var(--mac-bg-grouped);
+            }
         }
         &-cell {
-            padding: $base-padding;
+            padding: 0 8px;
             text-align: left;
             flex-grow: 1;
             flex-shrink: 0;
             flex-basis: 0;
             overflow: hidden;
             text-overflow: ellipsis;
+            white-space: nowrap;
             &:first-child {
                 text-align: center;
                 padding: 0;
-                width: 3em;
-                flex-basis: 3em;
+                width: 36px;
+                flex-basis: 36px;
                 flex-grow: 0;
                 flex-shrink: 0;
             }
         }
+        &-head {
+            font-size: var(--mac-text-caption);
+            color: var(--mac-label-2);
+            box-shadow: 0 0.5px 0 var(--mac-separator);
+        }
         &-options {
-            @include icon-btn();
-            cursor: pointer;
+            @include mac-icon-btn(22px);
         }
     }
 
@@ -162,49 +172,82 @@
         position: absolute;
         top: 0;
         box-sizing: border-box;
-        @include nomobile {
-            @include area-selectable();
-            &--active,
-            &--active:hover {
-                @include area-selected();
+        cursor: default;
+
+        &:not(.list__item--table) {
+            display: grid;
+            grid-template-columns: 28px 1fr;
+            grid-template-rows: auto auto;
+            column-gap: 10px;
+            align-items: center;
+            align-content: center;
+            height: 44px;
+            padding: 0 10px;
+            margin: 0 8px;
+            width: calc(100% - 16px);
+            border-radius: var(--mac-radius-sm);
+            color: var(--mac-label);
+
+            // hairline between rows, indented past the icon column
+            &::after {
+                content: '';
+                position: absolute;
+                left: 48px;
+                right: 0;
+                bottom: 0;
+                height: 0.5px;
+                background-color: var(--mac-separator);
             }
-        }
-        @include mobile {
-            margin: 0 $base-padding-h;
-            border-bottom: light-border();
-            &:last-of-type {
-                border-bottom: none;
+            &:hover {
+                background-color: var(--mac-bg-control-hover);
             }
         }
 
-        &:not(.list__item--table) {
-            @include nomobile {
-                border-radius: var(--block-border-radius);
+        &--active:not(.list__item--table),
+        &--active:not(.list__item--table):hover {
+            background-color: var(--mac-selection);
+            color: var(--mac-selection-text);
+            &::after {
+                display: none;
             }
-            padding: $base-padding;
-            margin: 0 $small-spacing;
-            width: calc(100% - #{$small-spacing * 2});
+            .list__item-icon,
+            .list__item-descr {
+                color: var(--mac-selection-text) !important;
+            }
+        }
+        // Blurred window: quiet selection
+        .list:not(:focus-within) &--active:not(.list__item--table),
+        .list:not(:focus-within) &--active:not(.list__item--table):hover {
+            background-color: var(--mac-selection-inactive);
+            color: var(--mac-label);
+            .list__item-icon,
+            .list__item-descr {
+                color: var(--mac-label-2) !important;
+            }
         }
 
         &--expired {
             .list__item-title,
             .list__item-descr {
                 text-decoration: line-through;
+                color: var(--mac-label-3);
             }
         }
 
         &-icon {
-            margin-right: 0.2em;
-            width: 14px;
-            height: 14px;
-            vertical-align: top;
-            position: relative;
-            top: -1px;
-            @include mobile {
-                margin-right: 4px;
-            }
+            grid-row: 1 / span 2;
+            @include size(28px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--mac-radius-sm);
+            background-color: var(--mac-bg-grouped);
+            font-size: 14px;
+            color: var(--mac-label-2);
             &--custom {
-                vertical-align: text-bottom;
+                padding: 5px;
+                box-sizing: border-box;
+                object-fit: contain;
                 &.yellow {
                     filter: grayscale(1) sepia(1) hue-rotate(20deg) brightness(1.17) saturate(5.7);
                 }
@@ -224,22 +267,29 @@
                     filter: grayscale(1) sepia(1) hue-rotate(238deg) brightness(1) saturate(6.2);
                 }
             }
+            .list__item--table & {
+                @include size(auto);
+                display: inline;
+                background: none;
+                border-radius: 0;
+            }
         }
 
         &-title {
-            margin-left: 2px;
+            font-size: var(--mac-text-body);
+            font-weight: 500;
+            line-height: 16px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         &-descr {
-            font-size: 0.8em;
-            color: var(--muted-color);
+            font-size: var(--mac-text-caption);
+            line-height: 14px;
+            color: var(--mac-label-2);
             display: block;
             text-overflow: ellipsis;
             overflow: hidden;
-            margin-bottom: $tiny-spacing;
-            .list__item--active & {
-                color: var(--selected-item-text-color);
-            }
         }
     }
 }

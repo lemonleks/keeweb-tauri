@@ -48,6 +48,7 @@ fn main_window(app: &AppHandle) -> Result<WebviewWindow, String> {
     app.get_webview_window("main").ok_or_else(|| "Main window is unavailable".into())
 }
 
+#[cfg_attr(target_os = "macos", allow(dead_code))]
 fn background_color(settings: &Value, dark: bool) -> tauri::window::Color {
     let mut theme = match settings.get("theme").and_then(Value::as_str).unwrap_or("dark") {
         "macdark" => "dark",
@@ -138,8 +139,23 @@ pub fn create_main_window(app: &AppHandle) -> Result<WebviewWindow, String> {
         .title("LemonKee")
         .inner_size(1000.0, 700.0)
         .min_inner_size(700.0, 400.0)
-        .background_color(background_color(&settings, true))
         .visible(false);
+    // macOS: Liquid-Glass shell. The window is transparent with the system Sidebar
+    // material behind the whole webview; the page paints opaque content panes itself.
+    #[cfg(target_os = "macos")]
+    let builder = builder
+        .transparent(true)
+        .title_bar_style(tauri::TitleBarStyle::Overlay)
+        .hidden_title(true)
+        .traffic_light_position(LogicalPosition::new(16.0, 18.0))
+        .effects(tauri::utils::config::WindowEffectsConfig {
+            effects: vec![tauri::utils::WindowEffect::Sidebar],
+            state: Some(tauri::utils::WindowEffectState::FollowsWindowActiveState),
+            radius: None,
+            color: None,
+        });
+    #[cfg(not(target_os = "macos"))]
+    let builder = builder.background_color(background_color(&settings, true));
     // Debug builds mirror the webview console to stderr (`dev_log` command), there is no CDP in wry.
     let builder = if cfg!(debug_assertions) || std::env::var_os("KEEWEB_STARTUP_LOGGING").is_some() {
         builder.initialization_script(include_str!("dev-console.js"))
@@ -149,10 +165,6 @@ pub fn create_main_window(app: &AppHandle) -> Result<WebviewWindow, String> {
         Some(path) => builder.initialization_script(std::fs::read_to_string(path).map_err(|err| err.to_string())?),
         None => builder,
     };
-    #[cfg(target_os = "macos")]
-    let builder = if matches!(settings.get("titlebarStyle").and_then(Value::as_str), Some("hidden" | "hidden-inset" | "hiddenInset")) {
-        builder.title_bar_style(tauri::TitleBarStyle::Overlay)
-    } else { builder };
     #[cfg(target_os = "windows")]
     let builder = if matches!(settings.get("titlebarStyle").and_then(Value::as_str), Some("hidden" | "hidden-inset" | "hiddenInset")) {
         builder.decorations(false)
@@ -160,8 +172,11 @@ pub fn create_main_window(app: &AppHandle) -> Result<WebviewWindow, String> {
     let window = builder.build().map_err(|err| err.to_string())?;
     crate::webkit_prefs::apply(&window);
     crate::webkit_prefs::block_network(&window);
-    let dark = window.theme().map_err(|err| err.to_string())? == tauri::Theme::Dark;
-    window.set_background_color(Some(background_color(&settings, dark))).map_err(|err| err.to_string())?;
+    #[cfg(not(target_os = "macos"))]
+    {
+        let dark = window.theme().map_err(|err| err.to_string())? == tauri::Theme::Dark;
+        window.set_background_color(Some(background_color(&settings, dark))).map_err(|err| err.to_string())?;
+    }
     apply_menu(app, &locale).map_err(|err| err.to_string())?;
     if let (Some(x), Some(y), Some(width), Some(height)) = (position.x, position.y, position.width, position.height) {
         if [x, y, width, height].iter().all(|value| value.is_finite()) && width > 0.0 && height > 0.0 {
@@ -514,10 +529,11 @@ fn show_window(app: &AppHandle, window: &WebviewWindow) -> Result<(), String> {
         if let Ok(Some(monitor)) = window.current_monitor() {
             let size = monitor.size();
             let scale = monitor.scale_factor();
-            window.set_size(LogicalSize::new(700.0, 400.0)).map_err(|err| err.to_string())?;
+            let (w, h) = (1100.0, 720.0);
+            window.set_size(LogicalSize::new(w, h)).map_err(|err| err.to_string())?;
             window.set_position(LogicalPosition::new(
-                size.width as f64 / scale - 700.0,
-                size.height as f64 / scale - 400.0,
+                size.width as f64 / scale - w,
+                size.height as f64 / scale - h,
             )).map_err(|err| err.to_string())?;
         }
     } else {

@@ -8,19 +8,103 @@
     @include scrollbar-on-hover;
     overflow: hidden;
     position: relative;
-    @include padding-if-titlebar;
+    background: var(--mac-bg-under-page);
+    -webkit-app-region: drag;
 
+    // System Settings grammar: a centered column, section titles, grouped rows.
     &__content {
-        margin: $medium-padding;
+        -webkit-app-region: no-drag;
+        margin: 0 auto;
+        padding: 24px 24px 80px;
+        max-width: 640px;
+        box-sizing: border-box;
+
+        > h1 {
+            font-size: var(--mac-text-title2);
+            font-weight: 600;
+            margin: 0 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        > h2,
+        > h3 {
+            font-size: var(--mac-text-headline);
+            font-weight: 600;
+            color: var(--mac-label);
+            margin: 20px 0 6px 2px;
+        }
+        > h2:first-of-type {
+            margin-top: 4px;
+        }
+        > p {
+            font-size: var(--mac-text-callout);
+            color: var(--mac-label-2);
+            margin: 0 2px 8px;
+        }
+
+        // Every control line becomes a row of a grouped box; adjacent rows join.
+        > div {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 36px;
+            padding: 5px 12px;
+            box-sizing: border-box;
+            background-color: var(--mac-bg-grouped);
+            box-shadow: inset 0 -0.5px 0 var(--mac-separator);
+            > label:first-child {
+                flex: 1 1 auto;
+                margin: 0;
+            }
+            > select,
+            > input[type='text'],
+            > input[type='password'] {
+                flex: 0 0 auto;
+                width: 220px;
+                margin: 0;
+            }
+            > input[type='checkbox'] + label {
+                flex: 1 1 auto;
+                margin: 0;
+            }
+            > button {
+                flex: 0 0 auto;
+            }
+            > input[type='checkbox'] + label::before {
+                order: 2;
+                margin-left: auto;
+            }
+        }
+        > div:first-child,
+        > h1 + div,
+        > h2 + div,
+        > h3 + div,
+        > p + div,
+        > :not(div) + div {
+            border-top-left-radius: var(--mac-radius-md);
+            border-top-right-radius: var(--mac-radius-md);
+        }
+        > div:last-child,
+        > div:has(+ :not(div)) {
+            border-bottom-left-radius: var(--mac-radius-md);
+            border-bottom-right-radius: var(--mac-radius-md);
+            box-shadow: none;
+            margin-bottom: 8px;
+        }
+        > div.settings__row {
+            display: flex;
+            gap: 12px;
+            width: auto;
+        }
+        > div.hide {
+            display: none;
+        }
     }
 
     > .scroller {
         flex: 1 0 0;
-    }
-
-    h2,
-    h3 {
-        margin-top: 20px;
     }
 
     .shortcut {
@@ -84,12 +168,15 @@
         }
         @include nomobile {
             position: absolute;
-            top: 0;
-            right: $base-padding-h;
-            padding: $base-padding-v * 2 0 1px 0;
+            top: 26px;
+            right: 16px;
             z-index: 1;
-            background: var(--background-color);
-            box-shadow: 0 0 5px 5px var(--background-color);
+            font-size: var(--mac-text-callout);
+            color: var(--mac-label-2);
+            -webkit-app-region: no-drag;
+            &:hover {
+                color: var(--mac-label);
+            }
             &-post {
                 display: inline;
             }
@@ -98,7 +185,7 @@
 
     &__select,
     &__input {
-        height: 2em;
+        height: var(--mac-control-h);
     }
 
     &__row {
@@ -184,46 +271,41 @@
         margin-bottom: $base-padding-v;
     }
     &__general-themes {
-        width: calc(100% - 10em);
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(10em, 1fr));
-        grid-gap: $base-spacing;
-        margin-bottom: $base-spacing;
-        @include mobile {
-            width: 100%;
-        }
+        display: flex;
+        gap: 8px;
+        flex: 0 0 auto;
     }
     &__general-theme {
-        padding: $base-padding;
-        border: light-border();
-        border-radius: var(--input-border-radius);
+        width: 96px;
+        padding: 6px 0 8px;
+        border: 0.5px solid var(--mac-field-border);
+        border-radius: var(--mac-radius-sm);
         text-align: center;
-        background: var(--background-color);
-        color: var(--text-color);
-        cursor: pointer;
-        body & {
-            --focus-shadow-spread: unset;
-            --form-box-shadow-color-focus: unset;
-            --form-box-shadow-color-hover: unset;
+        font-size: var(--mac-text-caption);
+        background: var(--mac-bg-content);
+        color: var(--mac-label);
+        cursor: default;
+        &.th-dark {
+            background: #1e1e1e;
+            color: rgba(255, 255, 255, 0.85);
         }
         &-name {
-            border-bottom: light-border();
-            padding-bottom: $tiny-spacing;
-            margin-bottom: $small-spacing;
+            margin-bottom: 6px;
         }
         &-button {
-            margin-bottom: $base-padding-v;
+            min-width: 0;
+            height: 16px;
+            line-height: 14px;
+            padding: 0 8px;
+            font-size: 9px;
         }
-        &-plugins-icon {
-            font-size: 3em;
-        }
-        &:hover {
-            box-shadow: form-box-shadow-hover();
+        &-plugins {
+            display: none;
         }
         &--selected,
         &--selected:hover {
-            border: 1px solid var(--action-color);
-            box-shadow: form-box-shadow-focus();
+            border-color: transparent;
+            box-shadow: 0 0 0 2px var(--mac-accent);
         }
     }
     &__logs {

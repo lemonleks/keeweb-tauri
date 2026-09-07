@@ -22,50 +22,14 @@ const SettingsManager = {
 
     allThemes: {
         dark: 'setGenThemeDark',
-        light: 'setGenThemeLight',
-        sd: 'setGenThemeSd',
-        sl: 'setGenThemeSl',
-        fb: 'setGenThemeFb',
-        bl: 'setGenThemeBl',
-        db: 'setGenThemeDb',
-        lb: 'setGenThemeLb',
-        te: 'setGenThemeTe',
-        lt: 'setGenThemeLt',
-        dc: 'setGenThemeDc',
-        hc: 'setGenThemeHc'
+        light: 'setGenThemeLight'
     },
 
-    // changing something here? don't forget about desktop/app.js
     autoSwitchedThemes: [
         {
             name: 'setGenThemeDefault',
             dark: 'dark',
             light: 'light'
-        },
-        {
-            name: 'setGenThemeSol',
-            dark: 'sd',
-            light: 'sl'
-        },
-        {
-            name: 'setGenThemeBlue',
-            dark: 'fb',
-            light: 'bl'
-        },
-        {
-            name: 'setGenThemeBrown',
-            dark: 'db',
-            light: 'lb'
-        },
-        {
-            name: 'setGenThemeTerminal',
-            dark: 'te',
-            light: 'lt'
-        },
-        {
-            name: 'setGenThemeHighContrast',
-            dark: 'dc',
-            light: 'hc'
         }
     ],
 
@@ -92,7 +56,7 @@ const SettingsManager = {
     },
 
     getDefaultTheme() {
-        return 'dark';
+        return ThemeWatcher.dark ? 'dark' : 'light';
     },
 
     setTheme(theme) {

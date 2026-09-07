@@ -12,19 +12,31 @@
   "app": {
     "withGlobalTauri": false,
     "windows": [],
-    "security": { "csp": null }
+    "security": {
+      "csp": null
+    },
+    "macOSPrivateApi": true
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg", "nsis", "deb", "appimage"],
-    "externalBin": ["binaries/keeweb-native-messaging-host"],
+    "targets": [
+      "dmg",
+      "nsis",
+      "deb",
+      "appimage"
+    ],
+    "externalBin": [
+      "binaries/keeweb-native-messaging-host"
+    ],
     "category": "Utility",
     "copyright": "Copyright © 2026 Antelle and KeeWeb contributors",
     "shortDescription": "Free cross-platform password manager compatible with KeePass",
     "longDescription": "KeeWeb is a free, open-source password manager for KeePass databases. Open existing KDBX files or create encrypted vaults to keep your credentials secure.",
     "fileAssociations": [
       {
-        "ext": ["kdbx"],
+        "ext": [
+          "kdbx"
+        ],
         "name": "KeePass database",
         "role": "Editor",
         "mimeType": "application/x-keepass2"
@@ -42,7 +54,14 @@
       "entitlements": "Entitlements.plist",
       "infoPlist": "Info.plist"
     },
-    "windows": { "nsis": { "installMode": "currentUser" } },
-    "linux": { "deb": {}, "appimage": {} }
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
+    "linux": {
+      "deb": {},
+      "appimage": {}
+    }
   }
 }

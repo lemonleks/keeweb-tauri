@@ -30,6 +30,9 @@ class AppSettingsModel extends Model {
         if (data.theme === 'wh') {
             data.theme = 'light';
         }
+        if (data.theme && data.theme !== 'dark' && data.theme !== 'light') {
+            data.theme = null; // LemonKee ships the two system themes only
+        }
     }
 
     save() {

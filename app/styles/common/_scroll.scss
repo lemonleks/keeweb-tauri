@@ -1,3 +1,4 @@
+// Overlay scrollbars (macOS): thumb only, visible on hover.
 .scroller {
     overflow-y: scroll;
     height: 100%;
@@ -8,45 +9,46 @@
         pointer-events: none;
         position: absolute;
         z-index: 3;
-        top: 10px;
-        bottom: 10px;
-        right: 1px;
+        top: 4px;
+        bottom: 4px;
+        right: 3px;
         width: 7px;
     }
     &__bar {
         position: absolute;
         z-index: 1;
         width: 7px;
-        border-radius: 3px;
+        border-radius: 4px;
         pointer-events: auto;
         -webkit-app-region: no-drag;
     }
 }
 
-@media screen and (-moz-windows-theme) {
-    .scroller {
-        @-moz-document url-prefix() {
-            margin-right: 0 !important;
-            padding-right: 0 !important;
+@mixin scrollbar-on-hover {
+    .scroller__bar-wrapper > .scroller__bar {
+        background-color: transparent;
+    }
+    &:hover .scroller__bar-wrapper > .scroller__bar {
+        background-color: var(--mac-label-3);
+        &:hover {
+            background-color: var(--mac-label-2);
         }
     }
 }
 
-@mixin scrollbar-on-hover {
-    .scroller__bar-wrapper {
-        > .scroller__bar {
-            background-color: transparent;
-            transition: background-color $base-duration $base-timing;
-        }
-    }
-    &:hover .scroller__bar-wrapper {
-        > .scroller__bar {
-            transition: background-color $slow-transition-out;
-            background-color: rgba(136, 136, 136, 0.2);
-            &:hover {
-                transition: background-color $slow-transition-in;
-                background-color: rgba(136, 136, 136, 0.8);
-            }
-        }
-    }
+::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--mac-label-3);
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--mac-label-2);
 }

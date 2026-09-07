@@ -1,13 +1,12 @@
+// Shell: transparent sidebar over the window's Sidebar material, opaque content panes,
+// overlay titlebar (traffic lights top-left), floating glass footer over the content.
 .app {
     @include size(100%);
     display: flex;
     align-items: stretch;
     flex-direction: column;
     justify-content: flex-start;
-
-    .titlebar-hidden-inset & {
-        -webkit-app-region: drag;
-    }
+    position: relative;
 
     &__body {
         flex: 1;
@@ -21,36 +20,28 @@
     &__titlebar-drag {
         position: absolute;
         width: 100%;
-        height: 30px;
+        height: var(--mac-titlebar-h);
         top: 0;
-        right: 0;
+        left: 0;
         -webkit-app-region: drag;
-        pointer-events: none;
+        z-index: 1;
     }
 
     &__menu {
         flex: 0 0 auto;
         display: flex;
-        width: 15em;
-        background-color: var(--secondary-background-color);
+        width: var(--mac-sidebar-w);
+        background-color: var(--mac-bg-sidebar);
+        padding-top: var(--mac-titlebar-h);
+        -webkit-app-region: drag;
         @include mobile {
+            background-color: var(--mac-bg-sidebar-fallback);
             &:not(.menu-visible) {
                 display: none;
             }
         }
-        transition: padding-top 150ms;
-        .titlebar-hidden & {
-            padding-top: $titlebar-padding-small;
-        }
-        .titlebar-hidden-inset & {
-            padding-top: $titlebar-padding-large;
-        }
-        .titlebar-custom.titlebar-hidden &,
-        .titlebar-custom.titlebar-hidden-inset & {
-            padding-top: $titlebar-custom-height;
-        }
-        .fullscreen .app & {
-            padding-top: 0;
+        .fullscreen & {
+            padding-top: 8px;
         }
     }
 
@@ -61,6 +52,9 @@
         flex-direction: row;
         justify-content: flex-start;
         overflow: hidden;
+        position: relative;
+        background-color: var(--mac-bg-content);
+        box-shadow: -0.5px 0 0 var(--mac-separator);
         &.app__list-wrap--table {
             flex-direction: column;
         }
@@ -72,12 +66,14 @@
         flex: 0 0 auto;
         width: 1px;
         cursor: col-resize;
+        background-color: transparent;
         @include mobile {
             display: none;
         }
     }
 
     &__list-drag {
+        background-color: var(--mac-separator);
         .app__list-wrap--table & {
             width: auto;
             height: 1px;
@@ -97,14 +93,12 @@
     }
 
     &__list {
-        flex: 0 0 25em;
+        flex: 0 0 320px;
         display: flex;
         align-items: stretch;
         flex-direction: column;
         overflow-y: auto;
-        .titlebar-hidden & {
-            padding-top: $titlebar-padding-tiny;
-        }
+        background-color: var(--mac-bg-content);
         @include mobile {
             flex: 1 1;
             .app--details-visible & {
@@ -117,17 +111,16 @@
         flex: 1;
         display: flex;
         overflow: hidden;
-        padding: $base-spacing;
+        padding: 0;
         position: relative;
+        background-color: var(--mac-bg-content);
         @include mobile {
             width: 100vw;
-            padding: $base-padding;
             display: none;
             .app--details-visible & {
                 display: flex;
             }
         }
-        @include padding-if-titlebar;
     }
 
     &__panel {
@@ -135,22 +128,34 @@
         display: flex;
         overflow: hidden;
         position: relative;
-        @include mobile {
-            padding: $base-padding;
-        }
+        background-color: var(--mac-bg-under-page);
+        box-shadow: -0.5px 0 0 var(--mac-separator);
     }
 
     &__footer {
-        flex: 0 0 auto;
-        border-top: light-border();
-        background-color: var(--secondary-background-color);
+        // Floating Liquid-Glass bar over the content area (right of the sidebar).
+        position: absolute;
+        left: calc(var(--mac-sidebar-w) + 12px);
+        right: 12px;
+        bottom: 12px;
+        height: 44px;
+        z-index: 2;
+        border-radius: var(--mac-radius-lg);
+        @include mac-glass;
+        @include mobile {
+            left: 12px;
+        }
+        .app__menu:not(.menu-visible) ~ & {
+            left: 12px;
+        }
     }
 
     &__beta {
-        padding: $base-padding;
+        padding: 4px $base-spacing;
         text-align: center;
-        background-color: var(--error-color);
-        color: var(--text-contrast-error-color);
+        font-size: var(--mac-text-caption);
+        background-color: var(--mac-warning);
+        color: #fff;
         > .fa {
             vertical-align: bottom;
         }

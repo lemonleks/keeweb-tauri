@@ -18,7 +18,7 @@ const Features = {
     isLocal: location.origin.indexOf('localhost') >= 0,
 
     get supportsTitleBarStyles() {
-        return isDesktop && (this.isMac || this.isWindows);
+        return isDesktop && this.isWindows; // macOS always uses the overlay titlebar
     },
     get supportsCustomTitleBarAndDraggableWindow() {
         return isDesktop && this.isMac;

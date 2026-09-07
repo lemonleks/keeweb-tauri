@@ -5,6 +5,12 @@
     justify-content: flex-start;
     user-select: text;
     width: 100%;
+    padding: 24px var(--mac-pad) 60px;
+    box-sizing: border-box;
+    -webkit-app-region: drag;
+    > * {
+        -webkit-app-region: no-drag;
+    }
 
     &__back-button {
         display: none;
@@ -27,44 +33,43 @@
 
     &__header {
         display: flex;
-        align-items: flex-start;
-        padding-bottom: $small-spacing;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 0 12px;
         overflow: visible;
         min-height: 40px;
         &-title {
             user-select: text;
             flex: 1;
-            align-self: flex-start;
             cursor: text;
-            margin: 0 6px;
-            padding: 3px 6px 1px;
+            margin: 0;
+            padding: 0 6px;
             overflow: hidden;
             text-overflow: ellipsis;
-            border-radius: var(--input-border-radius);
-            border: 1px solid transparent;
-            // why px and not em? it's like this to prevent jumping in different browsers
-            // when switching from a div to an input and vice versa
-            height: 42px;
-            line-height: 40px;
+            border-radius: var(--mac-radius-sm);
+            border: 0.5px solid transparent;
+            font-size: var(--mac-text-title2);
+            font-weight: 600;
+            // px: prevents jumping when switching between the div and the input
+            height: 32px;
+            line-height: 30px;
             white-space: nowrap;
             &:hover {
-                transition: border-color $base-duration $base-timing;
-                border: 1px solid var(--light-border-color);
+                border-color: var(--mac-field-border);
                 @include mobile {
                     border-color: transparent;
                 }
             }
         }
         input.details__header-title-input {
-            // see the comment about px above
-            height: 48px;
-            line-height: 40px;
+            height: 32px;
+            line-height: 30px;
             user-select: text;
             flex: 1;
-            margin: 0 6px;
+            margin: 0;
             padding: 0 6px;
-            font-size: $large-header-font-size;
-            font-weight: bold;
+            font-size: var(--mac-text-title2);
+            font-weight: 600;
             min-width: 0;
             @include mobile {
                 width: 100%;
@@ -72,22 +77,32 @@
         }
         &-color {
             user-select: none;
-            font-size: $large-header-font-size;
-            padding-top: 0.1em;
+            font-size: 18px;
+            color: var(--mac-label-3);
+            order: 3;
+            cursor: default;
         }
         &-icon {
-            @include area-selectable();
             user-select: none;
-            display: inline;
-            font-size: $large-header-font-size;
-            padding-top: 0.1em;
-            border-radius: var(--block-border-radius);
-            width: 1.8em;
-            height: 1.5em;
-            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            @include size(40px);
+            flex: 0 0 auto;
+            font-size: 20px;
+            color: var(--mac-label-2);
+            border-radius: var(--mac-radius-md);
+            background-color: var(--mac-bg-grouped);
+            order: -1;
+            cursor: default;
+            &:hover {
+                background-color: var(--mac-bg-control-pressed);
+            }
         }
         &-icon-img {
-            vertical-align: middle;
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
         }
     }
 
@@ -96,11 +111,11 @@
         display: none;
         position: absolute;
         z-index: $z-index-no-modal;
-        border-radius: $base-border-radius;
-        background: var(--background-color);
-        box-shadow: 0 0 3px var(--background-color);
-        left: 0.2em;
-        font-size: $large-header-font-size;
+        border-radius: var(--mac-radius-md);
+        @include mac-glass;
+        padding: 6px 0;
+        right: 0;
+        font-size: 18px;
         &:hover,
         .details__header-color:hover & {
             @include nomobile {
@@ -153,30 +168,46 @@
             flex-wrap: wrap;
             overflow-x: hidden;
             padding-top: 3px;
+            padding-bottom: 64px; // room for the floating footer
+            box-sizing: border-box;
             @media screen and (-webkit-min-device-pixel-ratio: 0) {
                 width: 100% !important;
             }
         }
 
-        &-fields {
-            flex: 1 0 50%;
+        // Inset grouped box (System Settings / Passwords.app inspector grammar)
+        &-fields,
+        &-after {
+            flex: 1 0 100%;
             min-width: 0;
-            margin-right: $base-padding-h;
+            margin: 0 0 12px;
+            padding: 0 12px;
+            border-radius: var(--mac-radius-md);
+            background-color: var(--mac-bg-grouped);
+            box-sizing: border-box;
+            &:empty {
+                display: none;
+            }
         }
 
         &-aside {
-            flex: 0 0 auto;
+            flex: 1 0 100%;
             display: flex;
             align-items: stretch;
             flex-direction: column;
             justify-content: flex-start;
+            margin: 0 0 12px;
+            padding: 0 12px;
+            border-radius: var(--mac-radius-md);
+            background-color: var(--mac-bg-grouped);
+            box-sizing: border-box;
+            .details__field {
+                min-height: 26px;
+                font-size: var(--mac-text-caption);
+            }
             @include mobile {
                 width: 100%;
             }
-        }
-
-        &-after {
-            flex: 100% 1 0;
         }
     }
 
@@ -184,23 +215,35 @@
         $details-field-line-height: 18px;
 
         display: flex;
-        align-items: stretch;
+        align-items: center;
         flex-direction: row;
         justify-content: flex-start;
-        margin-bottom: 0.5em;
+        margin: 0;
+        min-height: 32px;
+        padding: 5px 0;
+        box-sizing: border-box;
         position: relative;
+        box-shadow: 0 0.5px 0 var(--mac-separator);
+        &:last-child {
+            box-shadow: none;
+        }
 
         &-label {
-            color: var(--muted-color);
-            width: 7em;
-            text-align: right;
-            cursor: pointer;
-            padding-right: 1em;
+            color: var(--mac-label-2);
+            width: 120px;
+            flex: 0 0 120px;
+            text-align: left;
+            cursor: default;
+            padding-right: 12px;
+            box-sizing: border-box;
             border: 1px solid transparent;
             line-height: $details-field-line-height;
             position: relative;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
             &:hover {
-                color: var(--medium-color);
+                color: var(--mac-label);
             }
             .details__field--can-edit-title & {
                 cursor: text;
@@ -251,6 +294,10 @@
             }
             .details__field--protect & {
                 user-select: none;
+            }
+            .details__field--protected & {
+                font-family: var(--mac-font-mono);
+                letter-spacing: 0.05em;
             }
             .details__field--multiline & {
                 width: 0;
@@ -317,14 +364,12 @@
                 text-overflow: ellipsis;
             }
             .details__body-aside & {
-                color: var(--muted-color);
+                color: var(--mac-label-2);
                 a {
-                    color: var(--muted-color);
+                    color: var(--mac-label-2);
                 }
-                width: 13em;
                 padding-right: 0;
                 margin-right: 0;
-                flex: 0 0 auto;
             }
             &-btn {
                 @include position(absolute, -0.2em 0 null null);
@@ -492,10 +537,13 @@
 
     &__attachment {
         @include bg-btn();
-        align-self: flex-end;
+        height: 24px;
+        line-height: 24px;
+        border-radius: 12px;
+        font-size: var(--mac-text-caption);
+        align-self: center;
         flex: 0 1 auto;
-        margin-right: $small-spacing;
-        margin-top: $small-spacing;
+        margin-right: 6px;
         &--active,
         &--active:hover {
             @include bg-btn-active();
@@ -579,10 +627,11 @@
     }
 
     &__issues {
-        margin-top: $base-padding-v;
-        color: var(--text-contrast-error-color);
-        background-color: var(--error-color);
-        border-radius: var(--block-border-radius);
+        margin: 0 0 12px;
+        color: var(--mac-label);
+        background-color: color-mix(in srgb, var(--mac-warning) 14%, transparent);
+        border-radius: var(--mac-radius-md);
+        font-size: var(--mac-text-callout);
         display: flex;
         align-items: stretch;
         flex-direction: row;
@@ -592,12 +641,13 @@
             padding: $medium-padding-v 0;
             flex-grow: 1;
             > a {
-                color: var(--text-contrast-error-color);
+                color: var(--mac-link);
             }
         }
         &-icon {
-            padding: $medium-padding;
+            padding: 10px 12px;
             width: 1em;
+            color: var(--mac-warning);
             &-spin {
                 display: none;
                 .details__issues-icon--loading & {
@@ -624,11 +674,14 @@
 
     &__buttons {
         display: flex;
-        align-items: stretch;
+        align-items: center;
         flex-direction: row;
         flex-shrink: 0;
         justify-content: flex-start;
-        margin-top: $base-padding-v;
+        padding: 8px 0 12px;
+        margin-right: 0;
+        position: relative;
+        z-index: 3;
 
         .details--drag & {
             display: none;
@@ -637,8 +690,7 @@
         &-trash,
         &-trash-del {
             @include icon-btn($error: true);
-            align-self: flex-end;
-            margin-right: 10px;
+            margin-right: 8px;
         }
 
         &-trash-del {

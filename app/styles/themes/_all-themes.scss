@@ -1,25 +1,53 @@
-$themes: ();
+// LemonKee ships exactly two themes, `light` and `dark`, following the system.
+// Every legacy KeeWeb `--*` variable is an alias of a `--mac-*` token (base/_macos.scss),
+// so any selector not yet rewritten stays coherent with the native palette.
 
-@import 'theme-defaults';
-@import 'dark';
-@import 'light';
-@import 'dark-brown';
-@import 'light-brown';
-@import 'flat-blue';
-@import 'light-blue';
-@import 'terminal';
-@import 'light-terminal';
-@import 'high-contrast';
-@import 'dark-contrast';
-@import 'solarized-dark';
-@import 'solarized-light';
-
-@each $theme-name, $theme-vars in $themes {
-    $theme-vars: set-theme-vars($theme-vars);
-
-    .th-#{$theme-name} {
-        @each $key, $value in $theme-vars {
-            --#{$key}: #{$value};
-        }
-    }
+body.th-light,
+body.th-dark {
+    --text-color: var(--mac-label);
+    --medium-color: var(--mac-label-2);
+    --muted-color: var(--mac-label-2);
+    --text-semi-muted-color: var(--mac-label-2);
+    --action-color: var(--mac-accent);
+    --error-color: var(--mac-destructive);
+    --background-color: var(--mac-bg-content);
+    --secondary-background-color: var(--mac-bg-under-page);
+    --intermediate-background-color: var(--mac-bg-grouped);
+    --intermediate-pressed-background-color: var(--mac-bg-control-pressed);
+    --disabled-background-color: var(--mac-bg-grouped);
+    --unselected-background-color: var(--mac-bg-control);
+    --unselected-background-color-hover: var(--mac-bg-control-hover);
+    --modal-background-color: var(--mac-bg-content);
+    --modal-background-color-tr: var(--mac-bg-glass);
+    --base-border-color: var(--mac-separator);
+    --accent-border-color: var(--mac-separator-strong);
+    --light-border-color: var(--mac-separator);
+    --form-box-border-color-focus: var(--mac-accent);
+    --form-box-shadow-color-focus: var(--mac-accent-ring);
+    --form-box-shadow-color-hover: transparent;
+    --form-box-shadow-color-focus-error: var(--mac-destructive);
+    --focus-shadow-spread: 3px;
+    --input-border-radius: var(--mac-radius-sm);
+    --button-border-radius: var(--mac-radius-sm);
+    --block-border-radius: var(--mac-radius-md);
+    --selected-item-color: var(--mac-selection);
+    --selected-item-text-color: var(--mac-selection-text);
+    --selected-on-secondary-item-color: var(--mac-selection-sidebar);
+    --selectable-on-secondary-item-color: var(--mac-bg-control-hover);
+    --clickable-on-secondary-color: var(--mac-label-2);
+    --text-contrast-action-color: var(--mac-on-accent);
+    --text-contrast-error-color: #ffffff;
+    --text-selection-bg-color: var(--mac-accent-ring);
+    --text-selection-bg-color-error: var(--mac-destructive);
+    --action-background-color-focus: var(--mac-accent-hover);
+    --action-background-color-focus-tr: var(--mac-accent-ring);
+    --action-background-color-active: var(--mac-accent-pressed);
+    --action-background-color-active-tr: var(--mac-accent-ring);
+    --error-background-color-focus: var(--mac-destructive);
+    --error-background-color-focus-tr: rgba(255, 59, 48, 0.35);
+    --error-background-color-active: var(--mac-destructive);
+    --error-background-color-active-tr: rgba(255, 59, 48, 0.45);
+    --dropdown-box-shadow-color: rgba(0, 0, 0, 0.2);
+    --titlebar-button-background-color: var(--mac-bg-control-hover);
+    --open-icon-color: var(--mac-label-2);
 }

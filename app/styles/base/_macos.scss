@@ -60,7 +60,7 @@ body.th-light {
     --mac-bg-control-pressed: rgba(0, 0, 0, 0.09);
     --mac-bg-sidebar: transparent; // window vibrancy shows through
     --mac-bg-sidebar-fallback: rgba(236, 236, 236, 0.92);
-    --mac-bg-glass: rgba(255, 255, 255, 0.55); // Liquid Glass toolbar/panel on content
+    --mac-bg-glass: rgba(255, 255, 255, 0.72); // Liquid Glass toolbar/panel on content
     --mac-glass-blur: saturate(180%) blur(20px);
     --mac-glass-border: rgba(255, 255, 255, 0.6);
     --mac-glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
@@ -103,7 +103,7 @@ body.th-dark {
     --mac-bg-control-pressed: rgba(255, 255, 255, 0.16);
     --mac-bg-sidebar: transparent;
     --mac-bg-sidebar-fallback: rgba(40, 40, 40, 0.92);
-    --mac-bg-glass: rgba(40, 40, 40, 0.6);
+    --mac-bg-glass: rgba(40, 40, 40, 0.72);
     --mac-glass-blur: saturate(180%) blur(20px);
     --mac-glass-border: rgba(255, 255, 255, 0.12);
     --mac-glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);

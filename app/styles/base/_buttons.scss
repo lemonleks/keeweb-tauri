@@ -1,74 +1,75 @@
+// macOS push buttons: 22px regular / 28px large, 7px radius.
+// Default = accent-filled (KeeWeb uses `.btn` for primary actions); `.btn-silent` is the
+// standard bordered button; `.btn-error` is a destructive bordered button.
 #{$all-buttons} {
     appearance: none;
-    border-radius: var(--button-border-radius);
-    cursor: pointer;
+    border-radius: var(--mac-radius-sm);
+    cursor: default;
     display: inline-block;
-    font-family: $base-font-family;
-    font-size: 1rem;
-    -webkit-font-smoothing: antialiased;
-    font-weight: 600;
-    line-height: 1;
-    padding: $small-spacing $base-spacing;
+    font-family: var(--mac-font);
+    font-size: var(--mac-text-body);
+    font-weight: 400;
+    line-height: calc(var(--mac-control-h) - 2px);
+    height: var(--mac-control-h);
+    padding: 0 12px;
+    min-width: 64px;
     text-decoration: none;
-    transition: background-color border-color $base-duration $base-timing;
     user-select: none;
     vertical-align: middle;
     white-space: nowrap;
     outline: none;
-    min-width: 80px;
 
-    border: 1px solid var(--action-color);
-    background-color: var(--action-color);
-    color: var(--text-contrast-action-color);
+    border: 0.5px solid transparent;
+    background-color: var(--mac-accent);
+    color: var(--mac-on-accent);
+    box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.12);
 
     &.btn-error,
     &.btn-silent {
-        border-color: var(--base-border-color);
-        background-color: transparent;
-        color: var(--text-color);
+        border-color: var(--mac-field-border);
+        background-color: var(--mac-bg-control);
+        color: var(--mac-label);
+    }
+    &.btn-error {
+        color: var(--mac-destructive);
     }
 
     &:hover {
-        border-color: var(--action-background-color-focus);
-        background-color: var(--action-background-color-focus);
-        &.btn-error {
-            border-color: var(--error-background-color-focus);
-            background-color: var(--error-background-color-focus-tr);
-        }
+        background-color: var(--mac-accent-hover);
+        &.btn-error,
         &.btn-silent {
-            border-color: var(--action-background-color-focus);
-            background-color: var(--action-background-color-focus-tr);
+            background-color: var(--mac-bg-control-hover);
         }
     }
 
     &:active {
-        border-color: var(--action-background-color-active);
-        background-color: var(--action-background-color-active);
-        &.btn-error {
-            border-color: var(--error-background-color-active);
-            background-color: var(--error-background-color-active-tr);
-        }
+        background-color: var(--mac-accent-pressed);
+        &.btn-error,
         &.btn-silent {
-            border-color: var(--action-background-color-active);
-            background-color: var(--action-background-color-active-tr);
+            background-color: var(--mac-bg-control-pressed);
         }
     }
 
+    &:focus-visible {
+        box-shadow: var(--mac-focus-ring);
+    }
+
     &:disabled {
-        cursor: default;
-        opacity: 0.5;
+        opacity: 0.4;
         &:hover {
-            border-color: var(--action-color);
-            background-color: var(--action-color);
-            &.btn-error {
-                border-color: var(--error-color);
-                background-color: transparent;
-            }
+            background-color: var(--mac-accent);
+            &.btn-error,
             &.btn-silent {
-                border-color: var(--action-color);
-                background-color: transparent;
+                background-color: var(--mac-bg-control);
             }
         }
+    }
+
+    &.btn--large {
+        height: var(--mac-control-h-large);
+        line-height: calc(var(--mac-control-h-large) - 2px);
+        padding: 0 16px;
+        border-radius: var(--mac-radius-sm);
     }
 }
 
@@ -77,51 +78,69 @@ button ~ button {
     margin-left: $small-spacing;
 }
 
-@mixin icon-btn($error: false) {
-    @include area-selectable();
-    padding: $medium-padding;
-    text-align: center;
-    border-radius: var(--block-border-radius);
-    transition: color $base-duration $base-timing;
-    > i {
-        vertical-align: middle;
+// Circular glass icon button (toolbars, floating bars)
+@mixin mac-icon-btn($size: 28px) {
+    @include size($size);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--mac-label-2);
+    cursor: default;
+    -webkit-app-region: no-drag;
+    &:hover {
+        background-color: var(--mac-bg-control-hover);
+        color: var(--mac-label);
     }
+    &:active {
+        background-color: var(--mac-bg-control-pressed);
+    }
+    > i {
+        font-size: 14px;
+        line-height: 1;
+    }
+}
+
+@mixin icon-btn($error: false) {
+    @include mac-icon-btn(28px);
     @if $error {
-        color: var(--muted-color);
         &:hover {
-            color: var(--error-color);
+            color: var(--mac-destructive);
         }
     }
 }
 
 @mixin bg-btn() {
     user-select: none;
-    cursor: pointer;
+    cursor: default;
     -webkit-app-region: no-drag;
-    padding: $medium-padding;
+    height: var(--mac-control-h-large);
+    line-height: var(--mac-control-h-large);
+    padding: 0 12px;
     text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
-    border-radius: var(--block-border-radius);
-    background-color: var(--intermediate-background-color);
-    transition: color $base-duration $base-timing;
+    border-radius: var(--mac-radius-sm);
+    background-color: var(--mac-bg-control);
+    border: 0.5px solid var(--mac-field-border);
+    color: var(--mac-label);
     > i {
-        margin-right: 0.4em;
-        line-height: inherit;
-        vertical-align: bottom;
+        margin-right: 6px;
+        color: var(--mac-label-2);
     }
     &:hover {
-        background-color: var(--intermediate-background-color);
-        color: var(--medium-color);
-        transform: background-color $base-duration $base-timing;
+        background-color: var(--mac-bg-control-hover);
     }
     &:active {
-        background-color: var(--intermediate-pressed-background-color);
-        color: var(--text-color);
+        background-color: var(--mac-bg-control-pressed);
     }
 }
 
 @mixin bg-btn-active() {
-    color: var(--selected-item-text-color);
-    background-color: var(--selected-item-color);
+    color: var(--mac-on-accent);
+    background-color: var(--mac-accent);
+    border-color: transparent;
+    > i {
+        color: inherit;
+    }
 }

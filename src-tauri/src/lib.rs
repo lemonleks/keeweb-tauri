@@ -8,6 +8,7 @@ mod net;
 mod paths;
 mod power;
 mod shortcuts;
+mod snapshot;
 mod spawn;
 mod webkit_prefs;
 mod window;
@@ -183,6 +184,7 @@ pub fn run() {
             window::resolve_proxy,
             window::get_startup_info,
             dev_log,
+            snapshot::dev_snapshot,
             native::argon2,
             native::yubikey_list,
             native::yubikey_challenge_response,

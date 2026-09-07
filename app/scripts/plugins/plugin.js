@@ -6,7 +6,6 @@ import { Launcher } from 'comp/launcher';
 import { SettingsManager } from 'comp/settings/settings-manager';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { PluginApi } from 'plugins/plugin-api';
-import { ThemeVars } from 'plugins/theme-vars';
 import { IoCache } from 'storage/io-cache';
 import { SemVer } from 'util/data/semver';
 import { SignatureVerifier } from 'util/data/signature-verifier';
@@ -338,14 +337,13 @@ class Plugin extends Model {
     }
 
     processThemeStyleSheet(styleSheet, theme) {
+        // LemonKee ships the two system themes only; a plugin theme may still install
+        // its own `.th-<name>` rules but no legacy variables are derived for it.
         const themeSelector = '.th-' + theme.name;
         const badSelectors = [];
         for (const rule of Array.from(styleSheet.cssRules)) {
             if (rule.selectorText && rule.selectorText.lastIndexOf(themeSelector, 0) !== 0) {
                 badSelectors.push(rule.selectorText);
-            }
-            if (rule.selectorText === themeSelector) {
-                this.addThemeVariables(rule);
             }
         }
         if (badSelectors.length) {
@@ -355,10 +353,6 @@ class Plugin extends Model {
             );
             throw 'Invalid theme';
         }
-    }
-
-    addThemeVariables(rule) {
-        ThemeVars.apply(rule.style);
     }
 
     applyJs(name, data) {
