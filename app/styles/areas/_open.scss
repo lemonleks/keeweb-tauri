@@ -80,6 +80,8 @@
             flex-direction: column;
             justify-content: flex-start;
             position: relative;
+            width: 440px;
+            max-width: calc(100vw - 32px);
             .open--drag & {
                 display: none;
             }
@@ -100,12 +102,15 @@
             justify-content: flex-start;
             align-items: center;
             flex-shrink: 0;
-            gap: 8px;
+            position: relative;
             margin-bottom: 8px;
         }
         &-enter-btn,
         &-opening-icon {
-            @include size(32px);
+            @include size(28px);
+            position: absolute;
+            right: 4px;
+            top: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -209,18 +214,12 @@
     input[type='password'].open__pass-input {
         font-size: var(--mac-text-title3);
         height: 36px;
-        padding: 0 12px;
+        padding: 0 40px 0 12px;
         margin-bottom: 0;
         border-radius: 9px;
+        width: 100%;
         &[readonly] {
             cursor: default;
-        }
-        width: 400px;
-        @media (max-width: 1000px) {
-            width: 320px;
-        }
-        @include mobile {
-            width: calc(100vw - 20px);
         }
     }
 
@@ -329,8 +328,7 @@
         justify-content: flex-start;
         align-items: stretch;
         margin-top: 20px;
-        width: 440px;
-        max-width: calc(100vw - 32px);
+        width: 100%;
         border-radius: var(--mac-radius-md);
         background-color: var(--mac-bg-grouped);
         padding: 0 4px;

@@ -114,11 +114,7 @@ Tip.prototype.mouseenter = function () {
 
 Tip.prototype.mouseleave = function () {
     if (this.tipEl) {
-        this.tipEl.addClass('tip--hide');
-        this.hideTimeout = setTimeout(() => {
-            this.hideTimeout = null;
-            this.hide();
-        }, 500);
+        this.hide();
     }
     if (this.showTimeout) {
         clearTimeout(this.showTimeout);

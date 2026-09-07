@@ -4,5 +4,6 @@
     color: var(--mac-label);
     border-radius: var(--mac-radius-md);
     @include mac-glass;
+    background: color-mix(in srgb, var(--mac-bg-content) 85%, transparent);
     box-shadow: inset 0 0 0 0.5px var(--mac-glass-border), var(--mac-shadow-popover);
 }

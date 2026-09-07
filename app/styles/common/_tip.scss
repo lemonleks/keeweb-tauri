@@ -1,34 +1,20 @@
 .tip {
     position: absolute;
-    padding: $base-padding;
+    padding: 4px 8px;
     white-space: nowrap;
     z-index: $z-index-no-modal;
     pointer-events: none;
-    opacity: 1;
-    @include nomobile {
-        animation: tip $tip-transition-in;
-    }
-    @include common-dropdown;
-    &.tip--fast,
-    &.tip--fast:before,
-    &.tip--fast:after {
-        animation-duration: $base-duration;
-    }
-    &--hide.tip,
-    &--hide.tip:before,
-    &--hide.tip:after {
-        transition: all $tip-transition-out;
-        transition-property: color, border-color, background-color, box-shadow;
-        color: transparent;
-        background-color: transparent;
-        border-color: transparent !important;
-        box-shadow: none;
+    font-size: var(--mac-text-caption);
+    color: var(--mac-label);
+    background-color: var(--mac-bg-content);
+    border-radius: var(--mac-radius-xs);
+    box-shadow: 0 0 0 0.5px var(--mac-separator-strong), 0 2px 8px rgba(0, 0, 0, 0.15);
+    -webkit-app-region: no-drag;
+    &--hide.tip {
+        display: none;
     }
     &:before,
     &:after {
-        @include nomobile {
-            animation: tip $tip-transition-in;
-        }
         content: ' ';
         width: 0;
         height: 0;
@@ -46,7 +32,7 @@
             'up',
             nth($arrow-size-small, 1),
             nth($arrow-size-small, 2),
-            var(--background-color)
+            var(--mac-bg-content)
         );
     }
     &.tip--top:after {
@@ -56,7 +42,7 @@
             'down',
             nth($arrow-size-small, 1),
             nth($arrow-size-small, 2),
-            var(--background-color)
+            var(--mac-bg-content)
         );
     }
     &.tip--top-left:after {
@@ -66,7 +52,7 @@
             'down',
             nth($arrow-size-small, 1),
             nth($arrow-size-small, 2),
-            var(--background-color)
+            var(--mac-bg-content)
         );
     }
     &.tip--left:after {
@@ -76,7 +62,7 @@
             'right',
             nth($arrow-size-small, 2),
             nth($arrow-size-small, 1),
-            var(--background-color)
+            var(--mac-bg-content)
         );
     }
     &.tip--right:after {
@@ -86,7 +72,7 @@
             'left',
             nth($arrow-size-small, 2),
             nth($arrow-size-small, 1),
-            var(--background-color)
+            var(--mac-bg-content)
         );
     }
 
@@ -97,7 +83,7 @@
             'up',
             nth($arrow-size-large, 1),
             nth($arrow-size-large, 2),
-            var(--light-border-color)
+            var(--mac-separator-strong)
         );
     }
     &.tip--top:before {
@@ -107,7 +93,7 @@
             'down',
             nth($arrow-size-large, 1),
             nth($arrow-size-large, 2),
-            var(--light-border-color)
+            var(--mac-separator-strong)
         );
     }
     &.tip--top-left:before {
@@ -117,7 +103,7 @@
             'down',
             nth($arrow-size-large, 1),
             nth($arrow-size-large, 2),
-            var(--light-border-color)
+            var(--mac-separator-strong)
         );
     }
     &.tip--left:before {
@@ -127,7 +113,7 @@
             'right',
             nth($arrow-size-large, 2),
             nth($arrow-size-large, 1),
-            var(--light-border-color)
+            var(--mac-separator-strong)
         );
     }
     &.tip--right:before {
@@ -137,13 +123,7 @@
             'left',
             nth($arrow-size-large, 2),
             nth($arrow-size-large, 1),
-            var(--light-border-color)
+            var(--mac-separator-strong)
         );
-    }
-}
-
-@keyframes tip {
-    from {
-        opacity: 0;
     }
 }
