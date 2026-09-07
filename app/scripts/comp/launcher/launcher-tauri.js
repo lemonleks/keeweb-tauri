@@ -44,7 +44,7 @@ const Launcher = {
         return this.startup?.version;
     },
     autoTypeSupported: true,
-    thirdPartyStoragesSupported: true,
+    thirdPartyStoragesSupported: false, // LemonKee is offline: no cloud storages
     clipboardSupported: true,
     platform() {
         return this.startup?.platform;

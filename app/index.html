@@ -10,10 +10,10 @@
                             font-src data:;
                             script-src 'self' 'unsafe-eval';
                             style-src 'self' blob:;
-                            connect-src 'self' ws: https: ipc: http://ipc.localhost;
+                            connect-src 'self' ipc: http://ipc.localhost;
                             child-src 'self' blob:;
                             worker-src 'self' blob:;
-                            img-src 'self' data: blob: https://services.keeweb.info/;
+                            img-src 'self' data: blob:;
                             object-src 'none';
                             form-action 'none';
             "

@@ -157,6 +157,7 @@ pub fn create_main_window(app: &AppHandle) -> Result<WebviewWindow, String> {
     } else { builder };
     let window = builder.build().map_err(|err| err.to_string())?;
     crate::webkit_prefs::apply(&window);
+    crate::webkit_prefs::block_network(&window);
     let dark = window.theme().map_err(|err| err.to_string())? == tauri::Theme::Dark;
     window.set_background_color(Some(background_color(&settings, dark))).map_err(|err| err.to_string())?;
     apply_menu(app, &locale).map_err(|err| err.to_string())?;
