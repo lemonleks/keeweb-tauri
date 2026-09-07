@@ -65,15 +65,17 @@ $titlebar-padding-large: 40px;
 }
 
 // Animations
-$base-duration: 150ms;
-$fast-duration: 80ms;
-$base-timing: ease;
-$slow-transition-in: $base-duration * 2 ease-in;
-$slow-transition-out: $base-duration ease-out;
-$fast-transition-in: $fast-duration ease-in;
-$fast-transition-out: $fast-duration ease-out;
-$tip-transition-in: 500ms $ease-in-expo;
-$tip-transition-out: $slow-transition-out;
+// LemonKee: no UI transitions. Upstream animates every hover/selection/panel for
+// 150-300ms, which reads as input lag; instant state changes feel native.
+$base-duration: 0ms;
+$fast-duration: 0ms;
+$base-timing: linear;
+$slow-transition-in: 0ms linear;
+$slow-transition-out: 0ms linear;
+$fast-transition-in: 0ms linear;
+$fast-transition-out: 0ms linear;
+$tip-transition-in: 0ms linear;
+$tip-transition-out: 0ms linear;
 
 // Math
 $sqrt2: 1.41;
