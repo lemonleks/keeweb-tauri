@@ -66,7 +66,7 @@ $titlebar-padding-large: 40px;
 }
 
 // Animations
-// LemonKee: no UI transitions. Upstream animates every hover/selection/panel for
+// lemonkee: no UI transitions. Upstream animates every hover/selection/panel for
 // 150-300ms, which reads as input lag; instant state changes feel native.
 $base-duration: 0ms;
 $fast-duration: 0ms;

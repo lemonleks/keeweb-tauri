@@ -1,10 +1,10 @@
-//! LemonKee is offline by design: no HTTP client is compiled into the binary.
+//! lemonkee is offline by design: no HTTP client is compiled into the binary.
 //! The commands stay registered so the web app gets a clear error instead of a
 //! missing-command failure. Other layers: CSP in `app/index.html`, the WebKit
 //! content-rule blocklist in `webkit_prefs.rs`, and `thirdPartyStoragesSupported: false`
 //! in `launcher-tauri.js`.
 
-const DISABLED: &str = "ENETDOWN: network access is disabled in LemonKee";
+const DISABLED: &str = "ENETDOWN: network access is disabled in lemonkee";
 
 #[tauri::command]
 pub fn http_request(_config: serde_json::Value) -> Result<(), String> {

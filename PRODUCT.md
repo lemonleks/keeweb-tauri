@@ -1,4 +1,4 @@
-# LemonKee
+# lemonkee
 
 Offline KeePass (KDBX) password manager for macOS, forked from KeeWeb. Tauri v2 shell, WKWebView UI (jQuery/Handlebars). No network access by design.
 
@@ -16,5 +16,5 @@ Operate. Scanability, native expectations and instant response outrank expressio
 
 ## Brand commitments
 - Follows the macOS 26 (Tahoe) Human Interface Guidelines: system font stack, system colors, Liquid-Glass sidebar/toolbar layering, concentric rounded corners, standard control sizes. Reference craft bar: Passwords.app and Notes.
-- Name: LemonKee. Icon: lemon.
+- Name: lemonkee. Icon: lemon.
 - No UI transitions (instant state changes); no network.

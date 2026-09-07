@@ -44,7 +44,7 @@ const Launcher = {
         return this.startup?.version;
     },
     autoTypeSupported: true,
-    thirdPartyStoragesSupported: false, // LemonKee is offline: no cloud storages
+    thirdPartyStoragesSupported: false, // lemonkee is offline: no cloud storages
     clipboardSupported: true,
     platform() {
         return this.startup?.platform;
@@ -281,8 +281,8 @@ const Launcher = {
     minimizeApp() {
         return invoke('minimize_app', {
             labels: {
-                restore: Locale.menuRestoreApp.replace('{}', 'LemonKee'),
-                quit: Locale.menuQuitApp.replace('{}', 'LemonKee')
+                restore: Locale.menuRestoreApp.replace('{}', 'lemonkee'),
+                quit: Locale.menuQuitApp.replace('{}', 'lemonkee')
             }
         });
     },

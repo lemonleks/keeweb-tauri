@@ -337,7 +337,7 @@ class Plugin extends Model {
     }
 
     processThemeStyleSheet(styleSheet, theme) {
-        // LemonKee ships the two system themes only; a plugin theme may still install
+        // lemonkee ships the two system themes only; a plugin theme may still install
         // its own `.th-<name>` rules but no legacy variables are derived for it.
         const themeSelector = '.th-' + theme.name;
         const badSelectors = [];
