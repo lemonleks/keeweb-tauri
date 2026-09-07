@@ -288,8 +288,8 @@ const Launcher = {
     minimizeApp() {
         return invoke('minimize_app', {
             labels: {
-                restore: Locale.menuRestoreApp.replace('{}', 'KeeWeb'),
-                quit: Locale.menuQuitApp.replace('{}', 'KeeWeb')
+                restore: Locale.menuRestoreApp.replace('{}', 'LemonKee'),
+                quit: Locale.menuQuitApp.replace('{}', 'LemonKee')
             }
         });
     },

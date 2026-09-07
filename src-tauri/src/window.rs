@@ -133,7 +133,7 @@ pub fn create_main_window(app: &AppHandle) -> Result<WebviewWindow, String> {
     };
     shell.window_ready.store(false, Ordering::SeqCst);
     let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
-        .title("KeeWeb")
+        .title("LemonKee")
         .inner_size(1000.0, 700.0)
         .min_inner_size(700.0, 400.0)
         .background_color(background_color(&settings, true))
@@ -405,8 +405,8 @@ pub fn minimize_app(app: AppHandle, labels: TrayLabels) -> Result<(), String> {
             let icon = Image::from_bytes(include_bytes!("../icons/tray.png"));
             let builder = TrayIconBuilder::with_id("keeweb-tray")
                 .icon(icon.map_err(|err| err.to_string())?)
-                .icon_as_template(cfg!(target_os = "macos"))
-                .tooltip("KeeWeb")
+                .icon_as_template(false)
+                .tooltip("LemonKee")
                 .menu(&menu)
                 .show_menu_on_left_click(cfg!(target_os = "macos"))
                 .on_menu_event(|app, event| match event.id().as_ref() {
@@ -585,10 +585,10 @@ pub fn quit_app(app: AppHandle) -> Result<(), String> {
 #[cfg(target_os = "macos")]
 fn apply_menu(app: &AppHandle, values: &Value) -> tauri::Result<()> {
     use tauri::menu::{AboutMetadata, PredefinedMenuItem as Item, Submenu};
-    let label = |key: &str, fallback: &str| values.get(key).and_then(Value::as_str).unwrap_or(fallback).replace("{}", "KeeWeb");
-    let app_menu = Submenu::with_items(app, "KeeWeb", true, &[
+    let label = |key: &str, fallback: &str| values.get(key).and_then(Value::as_str).unwrap_or(fallback).replace("{}", "LemonKee");
+    let app_menu = Submenu::with_items(app, "LemonKee", true, &[
         &Item::about(app, Some(&label("sysMenuAboutKeeWeb", "About KeeWeb")), Some(AboutMetadata {
-            name: Some("KeeWeb".into()), version: Some(env!("CARGO_PKG_VERSION").into()), ..Default::default()
+            name: Some("LemonKee".into()), version: Some(env!("CARGO_PKG_VERSION").into()), ..Default::default()
         }))?,
         &Item::separator(app)?,
         &Item::services(app, Some(&label("sysMenuServices", "Services")))?,

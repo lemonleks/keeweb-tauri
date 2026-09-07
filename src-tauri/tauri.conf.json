@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "KeeWeb",
+  "productName": "LemonKee",
   "version": "1.18.9",
   "identifier": "net.antelle.keeweb",
   "build": {
