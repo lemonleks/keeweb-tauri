@@ -438,6 +438,20 @@ const eventsReady = listen('app-event', (e) => {
     }
 });
 
+// Tauri intercepts OS file drops: the DOM `drop` event carries unreadable File objects,
+// so open dropped .kdbx files by path instead (the same route as argv / Finder open).
+getCurrentWindow().onDragDropEvent((e) => {
+    if (e.payload.type !== 'drop') {
+        return;
+    }
+    const paths = e.payload.paths || [];
+    const kdbx = paths.find((p) => /\.kdbx$/i.test(p));
+    if (kdbx) {
+        const key = paths.find((p) => p !== kdbx);
+        Launcher.openFile({ data: kdbx, key });
+    }
+});
+
 Launcher.ready = Promise.all([
     invoke('set_has_open_files', { hasOpenFiles }),
     invoke('get_startup_info').then(async (startup) => {
