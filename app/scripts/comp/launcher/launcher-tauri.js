@@ -15,6 +15,7 @@ const paths = {};
 const fileExistence = new Map();
 let focused = false;
 let maximized = false;
+let hasOpenFiles = false;
 
 function nativeError(error) {
     if (error instanceof Error) {
@@ -381,6 +382,16 @@ const Launcher = {
     }
 };
 
+Events.on('files-open-state', (nextHasOpenFiles) => {
+    if (hasOpenFiles === nextHasOpenFiles) {
+        return;
+    }
+    hasOpenFiles = nextHasOpenFiles;
+    invoke('set_has_open_files', { hasOpenFiles }).catch((err) =>
+        logger.error('Error reporting open files', err)
+    );
+});
+
 Events.on('launcher-exit-request', () => {
     Launcher.quitRequested = true;
     setTimeout(() => Events.emit('launcher-before-quit'), 0);
@@ -402,8 +413,9 @@ Events.on('main-window-blur', () => {
 });
 Events.on('launcher-started-minimized', () => setTimeout(() => Launcher.minimizeApp(), 0));
 Events.on('start-profile', (data) => StartProfiler.reportAppProfile(data));
-Events.on('app-ready', () =>
+Events.once('app-ready', () =>
     setTimeout(() => {
+        invoke('window_ready').catch((err) => logger.error('Error reporting window ready', err));
         Launcher.checkOpenFiles();
         if (Launcher.startup.openFile) {
             Launcher.openFile({
@@ -427,6 +439,7 @@ const eventsReady = listen('app-event', (e) => {
 });
 
 Launcher.ready = Promise.all([
+    invoke('set_has_open_files', { hasOpenFiles }),
     invoke('get_startup_info').then(async (startup) => {
         Launcher.startup = startup;
         if (startup.platform === 'darwin') {

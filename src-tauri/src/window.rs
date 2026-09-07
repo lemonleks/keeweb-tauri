@@ -1,4 +1,4 @@
-use std::{sync::{atomic::Ordering, mpsc, Mutex}, time::Duration};
+use std::{sync::{atomic::{AtomicBool, Ordering}, mpsc, Mutex}, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -28,6 +28,8 @@ struct WindowState {
     position: Mutex<WindowPosition>,
     flags: Mutex<WindowFlags>,
     save_signal: mpsc::Sender<()>,
+    creating: AtomicBool,
+    destroying: AtomicBool,
 }
 
 #[derive(Clone, Deserialize)]
@@ -73,24 +75,68 @@ fn background_color(settings: &Value, dark: bool) -> tauri::window::Color {
     tauri::window::Color(red, green, blue, 255)
 }
 
-pub fn setup(app: &mut tauri::App, settings: &Value, locale: &Value, devtools: bool) -> Result<(), String> {
-    let position_path = app.state::<Shell>().user_data_dir.join("window-position.json");
+pub fn setup(app: &mut tauri::App) -> Result<(), String> {
+    let (save_signal, save_receiver) = mpsc::channel();
+    app.manage(WindowState {
+        position: Mutex::new(WindowPosition::default()),
+        flags: Mutex::new(WindowFlags::default()),
+        save_signal,
+        creating: AtomicBool::new(false),
+        destroying: AtomicBool::new(false),
+    });
+    let handle = app.handle().clone();
+    std::thread::spawn(move || {
+        while save_receiver.recv().is_ok() {
+            loop {
+                match save_receiver.recv_timeout(Duration::from_millis(500)) {
+                    Ok(()) => continue,
+                    Err(mpsc::RecvTimeoutError::Timeout) => {
+                        if let Err(err) = save_position(&handle) {
+                            emit_app_event(&handle, "log", json!(err));
+                        }
+                        break;
+                    }
+                    Err(mpsc::RecvTimeoutError::Disconnected) => return,
+                }
+            }
+        }
+    });
+    let window = create_main_window(app.handle())?;
+    if app.state::<Shell>().startup.start_minimized {
+        minimize_app(app.handle().clone(), TrayLabels::default())?;
+        emit_app_event(app.handle(), "launcher-started-minimized", Value::Null);
+    } else {
+        show_window(app.handle(), &window)?;
+    }
+    Ok(())
+}
+
+pub fn create_main_window(app: &AppHandle) -> Result<WebviewWindow, String> {
+    let shell = app.state::<Shell>();
+    let config = app.state::<ConfigStore>();
+    let settings = config.load(&shell.user_data_dir, "app-settings")?
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok()).unwrap_or_else(|| json!({}));
+    let locale = config.load(&shell.user_data_dir, "locale")?
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        .filter(|locale| locale.get("locale") == settings.get("locale"))
+        .unwrap_or_else(|| json!({}));
+    let position_path = shell.user_data_dir.join("window-position.json");
     let position: WindowPosition = match std::fs::read_to_string(position_path) {
         Ok(text) => serde_json::from_str(&text).unwrap_or_default(),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => WindowPosition::default(),
         Err(err) => return Err(err.to_string()),
     };
-    let (save_signal, save_receiver) = mpsc::channel();
-    app.manage(WindowState {
-        position: Mutex::new(position.clone()),
-        flags: Mutex::new(WindowFlags { maximized: position.maximized, fullscreen: position.full_screen, minimized: false }),
-        save_signal,
-    });
+    let state = app.state::<WindowState>();
+    *state.position.lock().map_err(|err| err.to_string())? = position.clone();
+    *state.flags.lock().map_err(|err| err.to_string())? = WindowFlags {
+        maximized: position.maximized, fullscreen: position.full_screen, minimized: false,
+    };
+    shell.window_ready.store(false, Ordering::SeqCst);
     let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
         .title("KeeWeb")
         .inner_size(1000.0, 700.0)
         .min_inner_size(700.0, 400.0)
-        .background_color(background_color(settings, true))
+        .background_color(background_color(&settings, true))
         .visible(false);
     // Debug builds mirror the webview console to stderr (`dev_log` command), there is no CDP in wry.
     let builder = if cfg!(debug_assertions) || std::env::var_os("KEEWEB_STARTUP_LOGGING").is_some() {
@@ -111,8 +157,8 @@ pub fn setup(app: &mut tauri::App, settings: &Value, locale: &Value, devtools: b
     } else { builder };
     let window = builder.build().map_err(|err| err.to_string())?;
     let dark = window.theme().map_err(|err| err.to_string())? == tauri::Theme::Dark;
-    window.set_background_color(Some(background_color(settings, dark))).map_err(|err| err.to_string())?;
-    apply_menu(app.handle(), locale).map_err(|err| err.to_string())?;
+    window.set_background_color(Some(background_color(&settings, dark))).map_err(|err| err.to_string())?;
+    apply_menu(app, &locale).map_err(|err| err.to_string())?;
     if let (Some(x), Some(y), Some(width), Some(height)) = (position.x, position.y, position.width, position.height) {
         if [x, y, width, height].iter().all(|value| value.is_finite()) && width > 0.0 && height > 0.0 {
             window.set_position(LogicalPosition::new(x, y)).map_err(|err| err.to_string())?;
@@ -132,39 +178,12 @@ pub fn setup(app: &mut tauri::App, settings: &Value, locale: &Value, devtools: b
     if position.full_screen {
         window.set_fullscreen(true).map_err(|err| err.to_string())?;
     }
-    let handle = app.handle().clone();
-    std::thread::spawn(move || {
-        while save_receiver.recv().is_ok() {
-            loop {
-                match save_receiver.recv_timeout(Duration::from_millis(500)) {
-                    Ok(()) => continue,
-                    Err(mpsc::RecvTimeoutError::Timeout) => {
-                        if let Err(err) = save_position(&handle) {
-                            emit_app_event(&handle, "log", json!(err));
-                        }
-                        break;
-                    }
-                    Err(mpsc::RecvTimeoutError::Disconnected) => return,
-                }
-            }
-        }
-    });
-    if app.state::<Shell>().startup.start_minimized {
-        minimize_app(app.handle().clone(), TrayLabels::default())?;
-        emit_app_event(app.handle(), "launcher-started-minimized", Value::Null);
-    } else {
-        window.show().map_err(|err| err.to_string())?;
-        window.set_focus().map_err(|err| err.to_string())?;
-        if cfg!(debug_assertions) && std::env::var_os("KEEWEB_DEV_SMOKE").is_some() {
-            // Smoke runs need a visible page: WebKit freezes timers/rAF for occluded windows.
-            window.set_visible_on_all_workspaces(true).map_err(|err| err.to_string())?;
-            window.set_always_on_top(true).map_err(|err| err.to_string())?;
-        }
-    }
-    if devtools {
+    if std::env::args().any(|arg| arg.starts_with("--devtools"))
+        || std::env::var("KEEWEB_OPEN_DEVTOOLS").as_deref() == Ok("1")
+    {
         window.open_devtools();
     }
-    Ok(())
+    Ok(window)
 }
 
 fn coerce_to_monitor(window: &WebviewWindow) -> Result<(), String> {
@@ -278,8 +297,94 @@ pub fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
                 }
             }
         }
+        WindowEvent::Destroyed => {
+            let state = app.state::<WindowState>();
+            *state.flags.lock().unwrap_or_else(|err| err.into_inner()) = WindowFlags::default();
+            let was_teardown = state.destroying.swap(false, Ordering::SeqCst);
+            let shell = app.state::<Shell>();
+            shell.window_ready.store(false, Ordering::SeqCst);
+            shell.hook_before_quit.store(false, Ordering::SeqCst);
+            if was_teardown && !shell.hidden_in_tray.load(Ordering::SeqCst) && !shell.exit_requested.load(Ordering::SeqCst) {
+                // A restore can arrive after destroy() was dispatched but before this event.
+                if let Err(err) = show_main_window(app.clone()) {
+                    emit_app_event(app, "log", json!(err));
+                }
+            }
+        }
         _ => {}
     }
+}
+
+fn schedule_teardown(app: &AppHandle) {
+    let shell = app.state::<Shell>();
+    let generation = shell.teardown_generation.fetch_add(1, Ordering::SeqCst) + 1;
+    if !shell.hidden_in_tray.load(Ordering::SeqCst)
+        || shell.has_open_files.load(Ordering::SeqCst)
+        || !shell.window_ready.load(Ordering::SeqCst)
+        || shell.exit_requested.load(Ordering::SeqCst)
+        || app.get_webview_window("main").is_none()
+    {
+        return;
+    }
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_secs(3));
+        let handle = app.clone();
+        if let Err(err) = app.run_on_main_thread(move || {
+            let shell = handle.state::<Shell>();
+            if shell.teardown_generation.load(Ordering::SeqCst) != generation
+                || !shell.hidden_in_tray.load(Ordering::SeqCst)
+                || shell.has_open_files.load(Ordering::SeqCst)
+                || !shell.window_ready.load(Ordering::SeqCst)
+                || shell.exit_requested.load(Ordering::SeqCst)
+            {
+                return;
+            }
+            if let Some(window) = handle.get_webview_window("main") {
+                if let Err(err) = save_position(&handle) {
+                    emit_app_event(&handle, "log", json!(err));
+                    return;
+                }
+                let state = handle.state::<WindowState>();
+                state.destroying.store(true, Ordering::SeqCst);
+                shell.window_ready.store(false, Ordering::SeqCst);
+                if let Err(err) = window.destroy() {
+                    state.destroying.store(false, Ordering::SeqCst);
+                    shell.window_ready.store(true, Ordering::SeqCst);
+                    emit_app_event(&handle, "log", json!(err.to_string()));
+                }
+            }
+        }) {
+            emit_app_event(&app, "log", json!(err.to_string()));
+        }
+    });
+}
+
+#[tauri::command]
+pub fn set_has_open_files(app: AppHandle, shell: State<'_, Shell>, has_open_files: bool) -> Result<(), String> {
+    shell.has_open_files.store(has_open_files, Ordering::SeqCst);
+    if has_open_files {
+        shell.teardown_generation.fetch_add(1, Ordering::SeqCst);
+    } else {
+        schedule_teardown(&app);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn window_ready(app: AppHandle) -> Result<(), String> {
+    main_window(&app)?;
+    let shell = app.state::<Shell>();
+    let events = {
+        let mut pending = shell.pending_events.lock().map_err(|err| err.to_string())?;
+        shell.window_ready.store(true, Ordering::SeqCst);
+        std::mem::take(&mut *pending)
+    };
+    for (name, data) in events {
+        emit_app_event(&app, &name, data);
+    }
+    schedule_teardown(&app);
+    Ok(())
 }
 
 #[tauri::command]
@@ -309,7 +414,7 @@ pub fn minimize_app(app: AppHandle, labels: TrayLabels) -> Result<(), String> {
                             emit_app_event(app, "log", json!(err));
                         }
                     }
-                    "tray-quit" => emit_app_event(app, "launcher-exit-request", Value::Null),
+                    "tray-quit" => request_quit(app),
                     _ => {}
                 });
             #[cfg(not(target_os = "macos"))]
@@ -332,6 +437,7 @@ pub fn minimize_app(app: AppHandle, labels: TrayLabels) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     app.set_activation_policy(tauri::ActivationPolicy::Accessory).map_err(|err| err.to_string())?;
     shell.hidden_in_tray.store(true, Ordering::SeqCst);
+    schedule_teardown(&app);
     Ok(())
 }
 
@@ -343,13 +449,50 @@ pub fn minimize_then_hide_if_in_tray(app: AppHandle) -> Result<(), String> {
     if app.state::<Shell>().tray.lock().map_err(|err| err.to_string())?.is_some() {
         window.hide().map_err(|err| err.to_string())?;
         app.state::<Shell>().hidden_in_tray.store(true, Ordering::SeqCst);
+        schedule_teardown(&app);
     }
     update_position(&app)
 }
 
 #[tauri::command]
 pub fn show_main_window(app: AppHandle) -> Result<(), String> {
-    let window = main_window(&app)?;
+    let shell = app.state::<Shell>();
+    shell.teardown_generation.fetch_add(1, Ordering::SeqCst);
+    shell.hidden_in_tray.store(false, Ordering::SeqCst);
+    let handle = app.clone();
+    app.run_on_main_thread(move || {
+        let state = handle.state::<WindowState>();
+        if state.destroying.load(Ordering::SeqCst) || handle.state::<Shell>().exit_requested.load(Ordering::SeqCst) {
+            return;
+        }
+        if let Some(window) = handle.get_webview_window("main") {
+            if let Err(err) = show_window(&handle, &window) {
+                emit_app_event(&handle, "log", json!(err));
+            }
+        } else if !state.creating.swap(true, Ordering::SeqCst) {
+            // WebView2 creation deadlocks in synchronous commands and event callbacks.
+            let app = handle.clone();
+            std::thread::spawn(move || {
+                let created = create_main_window(&app);
+                app.state::<WindowState>().creating.store(false, Ordering::SeqCst);
+                // Tray removal (NSStatusItem) and activation must happen on the main thread.
+                let handle = app.clone();
+                let result = created.and_then(|window| {
+                    handle.run_on_main_thread(move || {
+                        if let Err(err) = show_window(&app, &window) {
+                            emit_app_event(&app, "log", json!(err));
+                        }
+                    }).map_err(|err| err.to_string())
+                });
+                if let Err(err) = result {
+                    emit_app_event(&handle, "log", json!(err));
+                }
+            });
+        }
+    }).map_err(|err| err.to_string())
+}
+
+fn show_window(app: &AppHandle, window: &WebviewWindow) -> Result<(), String> {
     let maximized = app.state::<WindowState>().position.lock().map_err(|err| err.to_string())?.maximized;
     #[cfg(target_os = "macos")]
     {
@@ -360,11 +503,16 @@ pub fn show_main_window(app: AppHandle) -> Result<(), String> {
     window.set_skip_taskbar(false).map_err(|err| err.to_string())?;
     window.show().map_err(|err| err.to_string())?;
     window.unminimize().map_err(|err| err.to_string())?;
-    coerce_to_monitor(&window)?;
+    coerce_to_monitor(window)?;
     if maximized {
         window.maximize().map_err(|err| err.to_string())?;
     }
     window.set_focus().map_err(|err| err.to_string())?;
+    if cfg!(debug_assertions) && std::env::var_os("KEEWEB_DEV_SMOKE").is_some() {
+        // Smoke runs need a visible page: WebKit freezes timers/rAF for occluded windows.
+        window.set_visible_on_all_workspaces(true).map_err(|err| err.to_string())?;
+        window.set_always_on_top(true).map_err(|err| err.to_string())?;
+    }
     let shell = app.state::<Shell>();
     shell.hidden_in_tray.store(false, Ordering::SeqCst);
     let tray = shell.tray.lock().map_err(|err| err.to_string())?.take();
@@ -377,7 +525,16 @@ pub fn show_main_window(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub fn hide_app(app: AppHandle) -> Result<(), String> {
     #[cfg(target_os = "macos")]
-    { app.hide().map_err(|err| err.to_string()) }
+    {
+        main_window(&app)?;
+        app.hide().map_err(|err| err.to_string())?;
+        let shell = app.state::<Shell>();
+        if shell.tray.lock().map_err(|err| err.to_string())?.is_some() {
+            shell.hidden_in_tray.store(true, Ordering::SeqCst);
+            schedule_teardown(&app);
+        }
+        Ok(())
+    }
     #[cfg(not(target_os = "macos"))]
     { minimize_then_hide_if_in_tray(app) }
 }
@@ -393,9 +550,21 @@ pub fn set_hook_before_quit(shell: State<'_, Shell>, hooked: bool) -> Result<(),
     Ok(())
 }
 
+pub fn request_quit(app: &AppHandle) {
+    if app.get_webview_window("main").is_none() {
+        if let Err(err) = quit_app(app.clone()) {
+            emit_app_event(app, "log", json!(err));
+        }
+    } else {
+        emit_app_event(app, "launcher-exit-request", Value::Null);
+    }
+}
+
 #[tauri::command]
 pub fn quit_app(app: AppHandle) -> Result<(), String> {
-    save_position(&app)?;
+    if app.get_webview_window("main").is_some() {
+        save_position(&app)?;
+    }
     app.state::<Shell>().exit_requested.store(true, Ordering::SeqCst);
     app.exit(0);
     Ok(())
@@ -463,5 +632,11 @@ pub fn resolve_proxy(url: String) -> Result<Option<Value>, String> {
 
 #[tauri::command]
 pub fn get_startup_info(shell: State<'_, Shell>) -> Result<StartupInfo, String> {
-    Ok(shell.startup.clone())
+    let mut startup = shell.startup.clone();
+    if shell.startup_info_read.swap(true, Ordering::SeqCst) {
+        startup.open_file = None;
+        startup.open_keyfile = None;
+        startup.start_minimized = false;
+    }
+    Ok(startup)
 }

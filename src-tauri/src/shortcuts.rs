@@ -31,6 +31,11 @@ pub fn handle(app: &AppHandle, shortcut: &Shortcut, event: ShortcutEvent) {
             }
         } else {
             emit_app_event(app, action, Value::Null);
+            if action == "auto-type" && app.get_webview_window("main").is_none() {
+                if let Err(err) = window::show_main_window(app.clone()) {
+                    emit_app_event(app, "log", Value::String(err));
+                }
+            }
         }
     }
 }

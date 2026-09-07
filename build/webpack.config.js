@@ -159,7 +159,7 @@ function config(options) {
                 { test: /handlebars/, loader: 'strip-sourcemap-loader' },
                 {
                     test: /\.js$/,
-                    exclude: /node_modules[\\/](?!@tauri-apps[\\/])|babel-helpers\.js/,
+                    exclude: /node_modules|babel-helpers\.js/,
                     loader: 'babel-loader',
                     options: { cacheDirectory: true }
                 },
@@ -182,6 +182,9 @@ function config(options) {
         },
         optimization: {
             runtimeChunk: false,
+            // innerGraph drops the `var _Channel_onmessage` declarations that @tauri-apps/api
+            // (TS private-field downlevel) assigns later → ReferenceError in the release bundle.
+            innerGraph: false,
             minimize: !devMode,
             minimizer: [
                 new TerserPlugin({

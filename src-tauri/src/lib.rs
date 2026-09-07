@@ -11,7 +11,7 @@ mod shortcuts;
 mod spawn;
 mod window;
 
-use std::{collections::HashMap, path::PathBuf, sync::{atomic::{AtomicBool, Ordering}, Mutex}};
+use std::{collections::{HashMap, VecDeque}, path::PathBuf, sync::{atomic::{AtomicBool, AtomicU64, Ordering}, Mutex}};
 
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -49,6 +49,11 @@ pub struct Shell {
     pub hook_before_quit: AtomicBool,
     pub exit_requested: AtomicBool,
     pub hidden_in_tray: AtomicBool,
+    pub has_open_files: AtomicBool,
+    pub teardown_generation: AtomicU64,
+    pub window_ready: AtomicBool,
+    pub startup_info_read: AtomicBool,
+    pub pending_events: Mutex<VecDeque<(String, Value)>>,
     pub watchers: Mutex<HashMap<u32, notify::RecommendedWatcher>>,
     pub startup: StartupInfo,
     pub portable: bool,
@@ -56,6 +61,18 @@ pub struct Shell {
 }
 
 pub fn emit_app_event(app: &AppHandle, name: &str, data: Value) {
+    if name != "log" {
+        if let Some(shell) = app.try_state::<Shell>() {
+            let mut pending = shell.pending_events.lock().unwrap_or_else(|err| err.into_inner());
+            if !shell.window_ready.load(Ordering::SeqCst) || app.get_webview_window("main").is_none() {
+                if pending.len() == 32 {
+                    pending.pop_front();
+                }
+                pending.push_back((name.to_owned(), data));
+                return;
+            }
+        }
+    }
     if let Err(err) = app.emit("app-event", json!({ "name": name, "data": data })) {
         eprintln!("Cannot emit {name}: {err}");
     }
@@ -69,8 +86,6 @@ fn dev_log(level: String, message: String) {
 pub fn run() {
     let args: Vec<String> = std::env::args().collect();
     let startup = StartupInfo::from_args(&args);
-    let devtools = args.iter().any(|arg| arg.starts_with("--devtools"))
-        || std::env::var("KEEWEB_OPEN_DEVTOOLS").as_deref() == Ok("1");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
@@ -97,22 +112,23 @@ pub fn run() {
             let config = config::ConfigStore::new(&user_data_dir, portable)?;
             let settings = config.load(&user_data_dir, "app-settings")?
                 .and_then(|text| serde_json::from_str::<Value>(&text).ok()).unwrap_or_else(|| json!({}));
-            let locale = config.load(&user_data_dir, "locale")?
-                .and_then(|text| serde_json::from_str::<Value>(&text).ok())
-                .filter(|locale| locale.get("locale") == settings.get("locale"))
-                .unwrap_or_else(|| json!({}));
             app.manage(Shell {
                 tray: Mutex::new(None),
                 hook_before_quit: AtomicBool::new(false),
                 exit_requested: AtomicBool::new(false),
                 hidden_in_tray: AtomicBool::new(false),
+                has_open_files: AtomicBool::new(false),
+                teardown_generation: AtomicU64::new(0),
+                window_ready: AtomicBool::new(false),
+                startup_info_read: AtomicBool::new(false),
+                pending_events: Mutex::new(VecDeque::new()),
                 watchers: Mutex::new(HashMap::new()),
                 startup,
                 portable,
                 user_data_dir,
             });
             app.manage(config);
-            window::setup(app, &settings, &locale, devtools)?;
+            window::setup(app)?;
             let mut configured = HashMap::new();
             for (key, setting) in [
                 ("autoType", "globalShortcutAutoType"),
@@ -133,7 +149,7 @@ pub fn run() {
         .on_window_event(window::on_window_event)
         .on_menu_event(|app, event| {
             if event.id().as_ref() == "app-quit" {
-                emit_app_event(app, "launcher-exit-request", Value::Null);
+                window::request_quit(app);
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -158,6 +174,8 @@ pub fn run() {
             window::hide_app,
             window::is_app_focused,
             window::set_hook_before_quit,
+            window::set_has_open_files,
+            window::window_ready,
             window::quit_app,
             window::set_menu_labels,
             window::open_devtools,
@@ -197,13 +215,21 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("Cannot initialize KeeWeb")
         .run(|app, event| match event {
-            RunEvent::ExitRequested { api, .. } => {
+            RunEvent::ExitRequested { api, code, .. } => {
                 let shell = app.state::<Shell>();
-                if shell.hook_before_quit.load(Ordering::SeqCst) && !shell.exit_requested.load(Ordering::SeqCst) {
+                if !shell.exit_requested.load(Ordering::SeqCst)
+                    && code.is_none()
+                    && shell.tray.lock().is_ok_and(|tray| tray.is_some())
+                {
+                    // Destroying the last webview must leave the tray process running.
                     api.prevent_exit();
-                    emit_app_event(app, "launcher-exit-request", Value::Null);
-                } else if let Err(err) = window::save_position(app) {
-                    eprintln!("Cannot save window position: {err}");
+                } else if shell.hook_before_quit.load(Ordering::SeqCst) && !shell.exit_requested.load(Ordering::SeqCst) {
+                    api.prevent_exit();
+                    window::request_quit(app);
+                } else if app.get_webview_window("main").is_some() {
+                    if let Err(err) = window::save_position(app) {
+                        eprintln!("Cannot save window position: {err}");
+                    }
                 }
             }
             RunEvent::Exit => {
@@ -221,7 +247,9 @@ pub fn run() {
                     if let Ok(path) = url.to_file_path() {
                         if path.extension().is_some_and(|extension| extension.eq_ignore_ascii_case("kdbx")) {
                             emit_app_event(app, "launcher-open-file", json!({ "data": path, "key": null }));
-                            let _ = window::show_main_window(app.clone());
+                            if let Err(err) = window::show_main_window(app.clone()) {
+                                emit_app_event(app, "log", json!(err));
+                            }
                         }
                     }
                 }

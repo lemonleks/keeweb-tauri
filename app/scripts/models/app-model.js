@@ -45,6 +45,7 @@ class AppModel {
     mainWindowBlurTimer = null;
 
     constructor() {
+        this.files.on('change', () => Events.emit('files-open-state', this.files.hasOpenFiles()));
         Events.on('refresh', this.refresh.bind(this));
         Events.on('set-filter', this.setFilter.bind(this));
         Events.on('add-filter', this.addFilter.bind(this));
