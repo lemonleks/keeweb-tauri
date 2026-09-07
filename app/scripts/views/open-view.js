@@ -425,11 +425,13 @@ class OpenView extends View {
             .val(null);
 
         if (Launcher && Launcher.openFileChooser && reading === 'fileData') {
-            Launcher.openFileChooser((err, file) => {
+            // WKWebView cannot FileReader a synthetic File: open the chosen path
+            // the same way as files passed on the command line.
+            Launcher.openFileChooser((err, path) => {
                 if (err) {
                     logger.error('Error opening file chooser', err);
-                } else if (file) {
-                    this.processFile(file);
+                } else if (path) {
+                    this.showOpenLocalFile(path);
                 }
             });
         } else {

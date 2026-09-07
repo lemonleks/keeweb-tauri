@@ -76,17 +76,10 @@ const Launcher = {
             multiple: false,
             directory: false,
             filters: [{ name: Locale.launcherFileFilter, extensions: ['kdbx'] }]
-        })
-            .then(async (path) => {
-                if (!path) {
-                    return callback(null, null);
-                }
-                const bytes = await invoke('fs_read', { path });
-                const file = new File([bytes], this.parsePath(path).file);
-                file.path = path;
-                callback(null, file);
-            })
-            .catch((err) => callback(nativeError(err)));
+        }).then(
+            (path) => callback(null, path || null),
+            (err) => callback(nativeError(err))
+        );
     },
     getUserDataPath(fileName) {
         return this.joinPath(paths.userData, fileName || '');
