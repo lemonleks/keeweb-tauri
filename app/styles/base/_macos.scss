@@ -1,0 +1,136 @@
+// LemonKee design tokens: macOS 26 (Tahoe) system palette and metrics.
+// Two themes only, `th-light` and `th-dark`, switched by SettingsManager/ThemeWatcher.
+// Every area stylesheet uses these tokens; legacy KeeWeb `--*` variables are mapped
+// onto them in themes/_all-themes.scss so untouched selectors stay consistent.
+
+:root {
+    // Metrics (points; 1px = 1pt in CSS)
+    --mac-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    --mac-font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+    --mac-text-body: 13px; // NSFont.systemFontSize
+    --mac-text-caption: 11px;
+    --mac-text-callout: 12px;
+    --mac-text-headline: 13px; // semibold
+    --mac-text-title3: 15px;
+    --mac-text-title2: 17px;
+    --mac-text-title1: 22px;
+    --mac-text-large-title: 26px;
+    --mac-line-height: 1.35;
+
+    --mac-radius-xs: 5px; // small controls (checkbox, tag)
+    --mac-radius-sm: 7px; // buttons, text fields, list rows
+    --mac-radius-md: 11px; // grouped boxes, popovers
+    --mac-radius-lg: 16px; // sheets, glass toolbars
+    --mac-radius-xl: 24px; // floating glass sidebar
+
+    --mac-control-h: 22px; // regular NSControl height
+    --mac-control-h-large: 28px;
+    --mac-row-h: 28px; // sidebar/list rows
+    --mac-titlebar-h: 52px; // overlay titlebar incl. traffic lights (Tahoe unified toolbar)
+    --mac-sidebar-w: 220px;
+    --mac-gap: 8px;
+    --mac-pad: 16px; // content inset
+    --mac-focus-ring: 0 0 0 3.5px var(--mac-accent-ring);
+}
+
+// Light
+body.th-light {
+    color-scheme: light;
+    --mac-accent: #007aff;
+    --mac-accent-hover: #0a6fe6;
+    --mac-accent-pressed: #0062cc;
+    --mac-accent-ring: rgba(0, 122, 255, 0.35);
+    --mac-on-accent: #ffffff;
+    --mac-destructive: #ff3b30;
+    --mac-warning: #ff9500;
+    --mac-success: #34c759;
+
+    --mac-label: rgba(0, 0, 0, 0.85);
+    --mac-label-2: rgba(0, 0, 0, 0.5);
+    --mac-label-3: rgba(0, 0, 0, 0.25);
+    --mac-label-4: rgba(0, 0, 0, 0.1);
+    --mac-link: #0068da;
+
+    --mac-bg-window: #ececec; // windowBackgroundColor
+    --mac-bg-content: #ffffff; // textBackgroundColor (list, details)
+    --mac-bg-under-page: #f5f5f5; // underPageBackgroundColor (settings, open screen)
+    --mac-bg-grouped: rgba(0, 0, 0, 0.04); // inset grouped box on content
+    --mac-bg-control: rgba(255, 255, 255, 0.9);
+    --mac-bg-control-hover: rgba(0, 0, 0, 0.04);
+    --mac-bg-control-pressed: rgba(0, 0, 0, 0.09);
+    --mac-bg-sidebar: transparent; // window vibrancy shows through
+    --mac-bg-sidebar-fallback: rgba(236, 236, 236, 0.92);
+    --mac-bg-glass: rgba(255, 255, 255, 0.55); // Liquid Glass toolbar/panel on content
+    --mac-glass-blur: saturate(180%) blur(20px);
+    --mac-glass-border: rgba(255, 255, 255, 0.6);
+    --mac-glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
+
+    --mac-separator: rgba(0, 0, 0, 0.1);
+    --mac-separator-strong: rgba(0, 0, 0, 0.18);
+    --mac-selection: #007aff; // selectedContentBackgroundColor
+    --mac-selection-text: #ffffff;
+    --mac-selection-inactive: rgba(0, 0, 0, 0.08); // unemphasizedSelectedContentBackground
+    --mac-selection-sidebar: rgba(0, 0, 0, 0.08); // sidebar rows use quiet selection
+    --mac-field-bg: #ffffff;
+    --mac-field-border: rgba(0, 0, 0, 0.12);
+    --mac-shadow-popover: 0 0 0 0.5px rgba(0, 0, 0, 0.15), 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+// Dark
+body.th-dark {
+    color-scheme: dark;
+    --mac-accent: #0a84ff;
+    --mac-accent-hover: #1a8fff;
+    --mac-accent-pressed: #0070e0;
+    --mac-accent-ring: rgba(10, 132, 255, 0.45);
+    --mac-on-accent: #ffffff;
+    --mac-destructive: #ff453a;
+    --mac-warning: #ff9f0a;
+    --mac-success: #30d158;
+
+    --mac-label: rgba(255, 255, 255, 0.85);
+    --mac-label-2: rgba(255, 255, 255, 0.55);
+    --mac-label-3: rgba(255, 255, 255, 0.25);
+    --mac-label-4: rgba(255, 255, 255, 0.1);
+    --mac-link: #419cff;
+
+    --mac-bg-window: #1e1e1e;
+    --mac-bg-content: #1e1e1e;
+    --mac-bg-under-page: #282828;
+    --mac-bg-grouped: rgba(255, 255, 255, 0.06);
+    --mac-bg-control: rgba(255, 255, 255, 0.1);
+    --mac-bg-control-hover: rgba(255, 255, 255, 0.08);
+    --mac-bg-control-pressed: rgba(255, 255, 255, 0.16);
+    --mac-bg-sidebar: transparent;
+    --mac-bg-sidebar-fallback: rgba(40, 40, 40, 0.92);
+    --mac-bg-glass: rgba(40, 40, 40, 0.6);
+    --mac-glass-blur: saturate(180%) blur(20px);
+    --mac-glass-border: rgba(255, 255, 255, 0.12);
+    --mac-glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
+
+    --mac-separator: rgba(255, 255, 255, 0.1);
+    --mac-separator-strong: rgba(255, 255, 255, 0.18);
+    --mac-selection: #0a84ff;
+    --mac-selection-text: #ffffff;
+    --mac-selection-inactive: rgba(255, 255, 255, 0.1);
+    --mac-selection-sidebar: rgba(255, 255, 255, 0.1);
+    --mac-field-bg: rgba(255, 255, 255, 0.06);
+    --mac-field-border: rgba(255, 255, 255, 0.14);
+    --mac-shadow-popover: 0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+// Liquid Glass surface: floating navigation layer over content.
+@mixin mac-glass {
+    background: var(--mac-bg-glass);
+    -webkit-backdrop-filter: var(--mac-glass-blur);
+    backdrop-filter: var(--mac-glass-blur);
+    box-shadow: inset 0 0 0 0.5px var(--mac-glass-border), var(--mac-glass-shadow);
+}
+
+// Standard focus ring (keyboard focus only)
+@mixin mac-focus {
+    outline: none;
+    &:focus-visible {
+        box-shadow: var(--mac-focus-ring);
+    }
+}
