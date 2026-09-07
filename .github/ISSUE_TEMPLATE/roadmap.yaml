@@ -22,7 +22,7 @@ body:
               - ⭐ New NodeJS Package
               - Argon2
               - Babel
-              - Electron
+              - Tauri
               - ESLint & Prettier
               - Fontawesome & SVG / TTF
               - Got & http Resolving

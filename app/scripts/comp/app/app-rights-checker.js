@@ -3,6 +3,9 @@ import { Alerts } from 'comp/ui/alerts';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { Features } from 'util/features';
 import { Locale } from 'util/locale';
+import { Logger } from 'util/logger';
+
+const logger = new Logger('app-rights-checker');
 
 const AppRightsChecker = {
     AppPath: '/Applications/KeeWeb.app',
@@ -20,7 +23,10 @@ const AppRightsChecker = {
         this.needRunInstaller((needRun) => {
             if (needRun) {
                 this.showAlert();
-                this.runInstaller();
+                logger.warn(
+                    'Application folder is not root-owned; change ownership manually',
+                    this.AppPath
+                );
             }
         });
     },
@@ -51,20 +57,6 @@ const AppRightsChecker = {
                     this.dontAskAnymore();
                 }
                 this.alert = null;
-            }
-        });
-    },
-
-    runInstaller() {
-        Launcher.spawn({
-            cmd: this.AppPath + '/Contents/Installer/KeeWeb Installer.app/Contents/MacOS/applet',
-            args: ['--install'],
-            complete: () => {
-                this.needRunInstaller((needRun) => {
-                    if (this.alert && !needRun) {
-                        this.alert.closeWithResult('cancel');
-                    }
-                });
             }
         });
     },

@@ -1,3 +1,4 @@
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { View } from 'framework/views/view';
 import { Events } from 'framework/events';
 import { Launcher } from 'comp/launcher';
@@ -45,7 +46,7 @@ class TitlebarView extends View {
     }
 
     clickClose() {
-        window.close();
+        getCurrentWindow().close();
     }
 
     appMaximized() {

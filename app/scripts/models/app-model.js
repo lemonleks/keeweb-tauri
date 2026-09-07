@@ -24,6 +24,7 @@ import { Locale } from 'util/locale';
 import { Logger } from 'util/logger';
 import { noop } from 'util/fn';
 import debounce from 'lodash/debounce';
+import * as kdbxweb from 'kdbxweb';
 import 'util/kdbxweb/protected-value-ex';
 
 class AppModel {
@@ -1365,9 +1366,10 @@ class AppModel {
         if (!this.settings.deviceOwnerAuth || params.encryptedPassword) {
             return;
         }
-        NativeModules.hardwareEncrypt(params.password)
+        const password = params.password.getBinary();
+        NativeModules.hardwareEncrypt(password)
             .then((encryptedPassword) => {
-                encryptedPassword = encryptedPassword.toBase64();
+                encryptedPassword = kdbxweb.ByteUtils.bytesToBase64(encryptedPassword);
                 const fileInfo = this.fileInfos.get(file.id);
                 const encryptedPasswordDate = new Date();
                 file.encryptedPassword = encryptedPassword;
@@ -1388,7 +1390,8 @@ class AppModel {
                 file.encryptedPasswordDate = null;
                 delete this.memoryPasswordStorage[file.id];
                 this.appLogger.error('Error encrypting password', e);
-            });
+            })
+            .finally(() => password.fill(0));
     }
 
     getMemoryPassword(fileId) {

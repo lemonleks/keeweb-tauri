@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core';
 import { Events } from 'framework/events';
 import { Features } from 'util/features';
 import { Locale } from 'util/locale';
@@ -85,6 +86,9 @@ const SettingsManager = {
                 this.setLocale(this.getBrowserLocale());
             }
         } catch (ex) {}
+        if (Launcher) {
+            Launcher.setGlobalShortcuts(AppSettingsModel);
+        }
     },
 
     getDefaultTheme() {
@@ -167,17 +171,15 @@ const SettingsManager = {
         Events.emit('set-locale', loc);
 
         if (Launcher) {
-            const { ipcRenderer } = Launcher.electron();
             const localeValuesForDesktopApp = {};
             for (const [key, value] of Object.entries(Locale)) {
                 if (key.startsWith('sysMenu')) {
                     localeValuesForDesktopApp[key] = value;
                 }
             }
-            ipcRenderer.invoke('setLocale', {
-                locale: loc,
-                ...localeValuesForDesktopApp
-            });
+            invoke('set_menu_labels', {
+                values: { locale: loc, ...localeValuesForDesktopApp }
+            }).catch((err) => logger.error('Error setting native menu labels', err));
         }
     },
 

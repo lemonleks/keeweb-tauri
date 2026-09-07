@@ -57,15 +57,9 @@ KeeWeb is a browser and desktop password manager which is capable of opening up 
     - [Volumes](#volumes)
   - [Dropbox Support](#dropbox-support)
 - [Build From Source](#build-from-source)
-  - [Platform: Windows](#platform-windows)
-    - [Using Grunt](#using-grunt)
-    - [Using NPM](#using-npm)
-  - [Platform: Linux](#platform-linux)
-    - [Using Grunt](#using-grunt-1)
-    - [Using NPM](#using-npm-1)
-  - [Platform: MacOS](#platform-macos)
-    - [Using Grunt](#using-grunt-2)
-    - [Using NPM](#using-npm-2)
+  - [Prerequisites](#prerequisites)
+  - [Desktop Development and Bundling](#desktop-development-and-bundling)
+  - [Web Build](#web-build)
 - [Donations](#donations)
 - [Contributors ✨](#contributors-)
 
@@ -737,121 +731,58 @@ To configure Dropbox support on your self-hosted setup [view our Wiki page](http
 
 ## Build From Source
 
-> [!NOTE]
-> Keeweb v1.19.0+ requires a minimum of Node v20.9.0 LTS in order to build.
-> If you require multiple versions of node, you can install `nvm`
->
-> ```shell
-> # install nvm
-> wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
->
-> # install node 20
-> nvm install 20
->
-> # switch to node 20
-> nvm use 20
-> ```
+KeeWeb uses Tauri v2 for the desktop shell and retains Grunt/webpack for the web app.
 
-<br />
+### Prerequisites
 
-The easiest way to clone all KeeWeb repos is:
+- Node.js 24 LTS and npm.
+- A current stable [Rust toolchain](https://rustup.rs/).
+- **macOS:** Xcode Command Line Tools (`xcode-select --install`). Packaged apps require macOS 11 or later.
+- **Windows:** Visual Studio Build Tools with the **Desktop development with C++** workload and the Microsoft Edge **WebView2 Runtime**.
+- **Linux (Debian/Ubuntu):** WebKitGTK 4.1 and the native build libraries:
 
-```bash
-curl https://raw.githubusercontent.com/keeweb/keeweb/develop/dev-env.sh | bash -
-```
+  ```shell
+  sudo apt-get install build-essential pkg-config libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libssl-dev libudev-dev libxdo-dev libxtst-dev libx11-dev
+  ```
 
-<br />
+  The bundled native messaging host currently supports x64 Linux.
 
-KeeWeb can be built utilizing the **grunt commandline**. Each platform has multiple commands you can use; pick one:
+See the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for other distributions.
 
-<br />
+### Desktop Development and Bundling
 
-### Platform: Windows
-
-You may build KeeWeb for `Windows` by executing ONE of the following two commands provided:
-
-<br />
-
-#### Using Grunt
+From this repository's root:
 
 ```shell
-grunt dev-desktop-win32 --skip-sign
+npm install
+npm run tauri:dev
 ```
 
-<br />
+The development command prepares the browser-extension sidecar, starts the web server on port 8085, and launches the desktop app. There is no separate desktop launcher process to start.
 
-#### Using NPM
+Debug builds mirror the webview console to stderr. Useful environment variables while developing: `KEEWEB_USER_DATA_DIR=<dir>` keeps settings in a plain-JSON directory instead of your real profile and keychain; `KEEWEB_DEV_SMOKE=<file.js>` injects a script into the webview at startup (used for scripted smoke tests); `KEEWEB_EMULATE_HARDWARE_ENCRYPTION=memory|persistent` emulates Secure Enclave encryption for unsigned builds; `KEEWEB_OPEN_DEVTOOLS=1` opens the inspector.
+
+To build an installer for the current platform:
 
 ```shell
-npm run dev-desktop-windows
+npm run build-desktop
 ```
 
-<br />
+Tauri writes bundles to `src-tauri/target/release/bundle/`: `.dmg` on macOS, an NSIS installer on Windows, and `.deb` / `.AppImage` on Linux. With an explicit Rust target, the output is under `src-tauri/target/<target>/release/bundle/`.
 
-### Platform: Linux
+`npm run prepare-sidecar` is also available separately. It copies the matching native messaging host into the ignored `src-tauri/binaries/` directory. Tauri's hooks select the requested architecture; `CARGO_BUILD_TARGET` can explicitly select a target for standalone preparation.
 
-You may build KeeWeb for `Linux` by executing ONE of the following two commands provided:
+For signed macOS releases, configure Tauri's `APPLE_SIGNING_IDENTITY` and `APPLE_TEAM_ID` with your own Apple Developer identity. Preparation generates `src-tauri/Entitlements.plist` with that team's keychain access group and application identifiers, plus the AppleEvents permission used by auto-type. Release CI additionally accepts `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID_USERNAME`, and `APPLE_DEPLOY_PASSWORD` secrets for signing and notarization. Real Secure Enclave access requires a correctly signed/provisioned app and supported hardware; an unsigned development build must explicitly opt into `KEEWEB_EMULATE_HARDWARE_ENCRYPTION=memory` or `persistent` if emulation is wanted. The prebuilt browser-extension host uses the legacy socket group independently of your signing team.
 
-<br />
+Tag pushes build the web app and macOS arm64/x64, Windows x64, and Linux x64 installers. Desktop bundles are uploaded to a draft GitHub release for review before publication.
 
-#### Using Grunt
+### Web Build
 
 ```shell
-grunt dev-desktop-linux --skip-sign
+npm run build-legacy
 ```
 
-<br />
-
-#### Using NPM
-
-```shell
-npm run dev-desktop-linux
-```
-
-<br />
-<br />
-
-### Platform: MacOS
-
-You may build KeeWeb for `MacOS` by executing ONE of the following two commands provided:
-
-#### Using Grunt
-
-```shell
-grunt dev-desktop-darwin --skip-sign
-```
-
-#### Using NPM
-
-```shell
-npm run dev-desktop-macos
-```
-
-<br />
-
-Once the build is complete, all (html files will be in `dist/` folder. To build KeeWeb, utilize the following commands below.
-
-<br />
-
-To run the desktop (electron) app without building an installer, build the app with `grunt` and then launch KeeWeb with one of the following commands:
-
-<br />
-
-```bash
-npm run dev
-npm run electron
-```
-
-<br />
-
-To debug your build:
-
-1. run `npm run dev`
-2. open `http://localhost:8085`
-
-<br />
-
-Once built, the output files will be generated in `tmp`:
+The web app is written to `dist/`. To develop without the desktop shell, run `npm run dev-legacy` and open `http://localhost:8085`.
 
 <br />
 

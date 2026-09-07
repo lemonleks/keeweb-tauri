@@ -1,246 +1,126 @@
-import * as kdbxweb from 'kdbxweb';
+import { invoke as invokeCommand } from '@tauri-apps/api/core';
 import { Events } from 'framework/events';
-import { Logger } from 'util/logger';
 import { Launcher } from 'comp/launcher';
-import { Timeouts } from 'const/timeouts';
 
 let NativeModules;
 
+function nativeError(error) {
+    return error instanceof Error
+        ? error
+        : Object.assign(
+              new Error(typeof error === 'string' ? error : error.message),
+              typeof error === 'object' ? error : {}
+          );
+}
+
+function invoke(command, args) {
+    return invokeCommand(command, args).catch((error) => {
+        throw nativeError(error);
+    });
+}
+
 if (Launcher) {
-    const logger = new Logger('native-module-connector');
+    let callbackId = 0;
+    const callbacks = new Map();
 
-    let hostRunning = false;
-    let hostStartPromise;
-    let callId = 0;
-    let promises = {};
-    let ykChalRespCallbacks = {};
-
-    const { ipcRenderer } = Launcher.electron();
-    ipcRenderer.on('nativeModuleCallback', (e, msg) => NativeModules.hostCallback(msg));
-    ipcRenderer.on('nativeModuleHostError', (e, err) => NativeModules.hostError(err));
-    ipcRenderer.on('nativeModuleHostExit', (e, { code, sig }) => NativeModules.hostExit(code, sig));
-    ipcRenderer.on('nativeModuleHostDisconnect', () => NativeModules.hostDisconnect());
-    ipcRenderer.on('log', (e, ...args) => NativeModules.log(...args));
-
-    const handlers = {
-        yubikeys(numYubiKeys) {
-            Events.emit('native-modules-yubikeys', { numYubiKeys });
-        },
-
-        log(...args) {
-            logger.info('Message from host', ...args);
-        },
-
-        result({ callId, result, error }) {
-            const promise = promises[callId];
-            if (promise) {
-                delete promises[callId];
-                if (error) {
-                    logger.error('Received an error', promise.cmd, error);
-                    promise.reject(error);
-                } else {
-                    promise.resolve(result);
-                }
-            }
-        },
-
-        yubiKeyChallengeResponseResult({ callbackId, error, result }) {
-            const callback = ykChalRespCallbacks[callbackId];
-            if (callback) {
-                const willBeCalledAgain = error && error.touchRequested;
-                if (!willBeCalledAgain) {
-                    delete ykChalRespCallbacks[callbackId];
-                }
-                callback(error, result);
+    Events.on('native-modules-yubikey-chalresp-result', ({ callbackId, error, result }) => {
+        const callback = callbacks.get(callbackId);
+        if (!callback) {
+            return;
+        }
+        if (error) {
+            error = nativeError(error);
+            if (error.code === 'YK_ENOKEY') {
+                error.noKey = true;
+            } else if (error.code === 'YK_ETIMEOUT') {
+                error.timeout = true;
             }
         }
-    };
+        if (!error?.touchRequested) {
+            callbacks.delete(callbackId);
+        }
+        callback(error, result && new Uint8Array(result));
+    });
 
     NativeModules = {
-        startHost() {
-            if (hostRunning) {
-                return Promise.resolve();
-            }
-            if (hostStartPromise) {
-                return hostStartPromise;
-            }
-
-            logger.debug('Starting native module host');
-
-            hostStartPromise = this.callNoWait('start').then(() => {
-                hostStartPromise = undefined;
-                hostRunning = true;
-
-                if (this.usbListenerRunning) {
-                    return this.call('startUsbListener');
-                }
-            });
-
-            return hostStartPromise;
-        },
-
-        hostError(e) {
-            logger.error('Host error', e);
-        },
-
-        hostDisconnect() {
-            logger.error('Host disconnected');
-        },
-
-        hostExit(code, sig) {
-            logger.error(`Host exited with code ${code} and signal ${sig}`);
-
-            hostRunning = false;
-
-            const err = new Error('Native module host crashed');
-
-            for (const promise of Object.values(promises)) {
-                promise.reject(err);
-            }
-            promises = {};
-
-            for (const callback of Object.values(ykChalRespCallbacks)) {
-                callback(err);
-            }
-            ykChalRespCallbacks = {};
-
-            if (code !== 0) {
-                this.autoRestartHost();
-            }
-        },
-
-        hostCallback(message) {
-            const { cmd, args } = message;
-            // logger.debug('Callback', cmd, args);
-            if (handlers[cmd]) {
-                handlers[cmd](...args);
-            } else {
-                logger.error('No callback', cmd);
-            }
-        },
-
-        log(name, level, ...args) {
-            if (!name) {
-                return;
-            }
-            const logger = new Logger(name);
-            logger[level](...args);
-        },
-
-        autoRestartHost() {
-            setTimeout(() => {
-                try {
-                    this.startHost();
-                } catch (e) {
-                    logger.error('Native module host failed to auto-restart', e);
-                }
-            }, Timeouts.NativeModuleHostRestartTime);
-        },
-
-        call(cmd, ...args) {
-            return this.startHost().then(() => this.callNoWait(cmd, ...args));
-        },
-
-        callNoWait(cmd, ...args) {
-            return new Promise((resolve, reject) => {
-                callId++;
-                if (callId === Number.MAX_SAFE_INTEGER) {
-                    callId = 1;
-                }
-                // logger.debug('Call', cmd, args, callId);
-                promises[callId] = { cmd, resolve, reject };
-
-                ipcRenderer.send('nativeModuleCall', { cmd, args, callId });
-            });
-        },
-
         startUsbListener() {
-            this.call('startUsbListener');
-            this.usbListenerRunning = true;
+            return invoke('usb_listener_start');
         },
-
         stopUsbListener() {
-            this.usbListenerRunning = false;
-            if (hostRunning) {
-                this.call('stopUsbListener');
-            }
+            return invoke('usb_listener_stop');
         },
-
         getYubiKeys(config) {
-            return this.call('getYubiKeys', config);
+            return invoke('yubikey_list', { config });
         },
-
         yubiKeyChallengeResponse(yubiKey, challenge, slot, callback) {
-            ykChalRespCallbacks[callId] = callback;
-            return this.call('yubiKeyChallengeResponse', yubiKey, challenge, slot, callId);
+            const id = ++callbackId;
+            callbacks.set(id, callback);
+            return invoke('yubikey_challenge_response', {
+                yubikey: yubiKey,
+                challenge: Array.from(challenge),
+                slot,
+                callbackId: id
+            }).catch((error) => {
+                if (callbacks.delete(id)) {
+                    callback(error);
+                }
+            });
         },
-
         yubiKeyCancelChallengeResponse() {
-            if (hostRunning) {
-                this.call('yubiKeyCancelChallengeResponse');
-            }
+            return invoke('yubikey_cancel_challenge_response');
         },
-
-        argon2(password, salt, options) {
-            return this.call('argon2', password, salt, options);
-        },
-
-        hardwareCryptoDeleteKey: async () => {
-            await ipcRenderer.invoke('hardwareCryptoDeleteKey');
-        },
-
-        hardwareEncrypt: async (value) => {
-            const { data, salt } = await ipcRenderer.invoke('hardwareEncrypt', value.dataAndSalt());
-            return new kdbxweb.ProtectedValue(data, salt);
-        },
-
-        hardwareDecrypt: async (value, touchIdPrompt) => {
-            const { data, salt } = await ipcRenderer.invoke(
-                'hardwareDecrypt',
-                value.dataAndSalt(),
-                touchIdPrompt
+        async argon2(password, salt, options) {
+            return new Uint8Array(
+                await invoke('argon2', {
+                    password: Array.from(new Uint8Array(password)),
+                    salt: Array.from(new Uint8Array(salt)),
+                    options
+                })
             );
-            return new kdbxweb.ProtectedValue(data, salt);
         },
-
+        hardwareCryptoDeleteKey() {
+            return invoke('hardware_crypto_delete_key');
+        },
+        async hardwareEncrypt(data) {
+            return new Uint8Array(await invoke('hardware_encrypt', { data: Array.from(data) }));
+        },
+        async hardwareDecrypt(data, touchIdPrompt) {
+            return new Uint8Array(
+                await invoke('hardware_decrypt', {
+                    data: Array.from(data),
+                    touchIdPrompt
+                })
+            );
+        },
         kbdGetActiveWindow(options) {
-            return this.call('kbdGetActiveWindow', options);
+            return invoke('kbd_get_active_window', { options });
         },
-
         kbdGetActivePid() {
-            return this.call('kbdGetActivePid');
+            return invoke('kbd_get_active_pid');
         },
-
-        kbdShowWindow(win) {
-            return this.call('kbdShowWindow', win);
+        kbdShowWindow(id) {
+            return invoke('kbd_show_window', { id });
         },
-
-        kbdText(str) {
-            return this.call('kbdText', str);
+        kbdText(text) {
+            return invoke('kbd_text', { text });
         },
-
-        kbdTextAsKeys(str, mods) {
-            return this.call('kbdTextAsKeys', str, mods);
+        kbdTextAsKeys(text, modifiers = []) {
+            return invoke('kbd_text_as_keys', { text, modifiers });
         },
-
-        kbdKeyPress(code, modifiers) {
-            return this.call('kbdKeyPress', code, modifiers);
+        kbdKeyPress(code, modifiers = []) {
+            return invoke('kbd_key_press', { code, modifiers });
         },
-
-        kbdShortcut(code, modifiers) {
-            return this.call('kbdShortcut', code, modifiers);
+        kbdShortcut(code) {
+            return invoke('kbd_shortcut', { code });
         },
-
-        kbdKeyMoveWithModifier(down, modifiers) {
-            return this.call('kbdKeyMoveWithModifier', down, modifiers);
+        kbdKeyMoveWithModifier(down, modifiers = []) {
+            return invoke('kbd_key_move_with_modifier', { down, modifiers });
         },
-
-        kbdKeyPressWithCharacter(character, code, modifiers) {
-            return this.call('kbdKeyPressWithCharacter', character, code, modifiers);
+        kbdKeyPressWithCharacter(character, code, modifiers = []) {
+            return invoke('kbd_key_press_with_character', { character, code, modifiers });
         },
-
         kbdEnsureModifierNotPressed() {
-            return this.call('kbdEnsureModifierNotPressed');
+            return invoke('kbd_ensure_modifier_not_pressed');
         }
     };
 

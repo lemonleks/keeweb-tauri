@@ -261,34 +261,31 @@ const YubiKey = {
         const { vid, pid, serial, slot } = chalResp;
         const yubiKey = { vid, pid, serial };
 
-        challenge = Buffer.from(challenge);
+        challenge = new Uint8Array(challenge);
 
         // https://github.com/Yubico/yubikey-personalization-gui/issues/86
         // https://github.com/keepassxreboot/keepassxc/blob/develop/src/keys/drivers/YubiKey.cpp#L318
 
         const padLen = YubiKeyChallengeSize - challenge.byteLength;
 
-        const paddedChallenge = Buffer.alloc(YubiKeyChallengeSize, padLen);
-        challenge.copy(paddedChallenge);
+        const paddedChallenge = new Uint8Array(YubiKeyChallengeSize).fill(padLen);
+        paddedChallenge.set(challenge.subarray(0, YubiKeyChallengeSize));
 
-        NativeModules.yubiKeyChallengeResponse(
-            yubiKey,
-            [...paddedChallenge],
-            slot,
-            (err, result) => {
-                if (result) {
-                    result = Buffer.from(result);
-                }
-                if (err) {
-                    err.ykError = true;
-                }
-                return callback(err, result);
+        NativeModules.yubiKeyChallengeResponse(yubiKey, paddedChallenge, slot, (err, result) => {
+            if (result) {
+                result = new Uint8Array(result);
             }
-        );
+            if (err) {
+                err.ykError = true;
+            }
+            return callback(err, result);
+        });
     },
 
     cancelChalResp() {
-        NativeModules.yubiKeyCancelChallengeResponse();
+        NativeModules.yubiKeyCancelChallengeResponse().catch((err) => {
+            logger.error('Error canceling YubiKey challenge response', err);
+        });
     }
 };
 

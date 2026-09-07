@@ -34,31 +34,19 @@ const KdbxwebInit = {
                 hash(args) {
                     const ts = logger.ts();
 
-                    const password = kdbxweb.ProtectedValue.fromBinary(args.password).dataAndSalt();
-                    const salt = kdbxweb.ProtectedValue.fromBinary(args.salt).dataAndSalt();
-
-                    return NativeModules.argon2(password, salt, {
+                    return NativeModules.argon2(args.password, args.salt, {
                         type: args.type,
                         version: args.version,
-                        hashLength: args.length,
-                        saltLength: args.salt.length,
-                        timeCost: args.iterations,
+                        length: args.length,
+                        iterations: args.iterations,
                         parallelism: args.parallelism,
-                        memoryCost: args.memory
+                        memory: args.memory
                     })
                         .then((res) => {
-                            password.data.fill(0);
-                            salt.data.fill(0);
-
                             logger.debug('Argon2 hash calculated', logger.ts(ts));
-
-                            res = new kdbxweb.ProtectedValue(res.data, res.salt);
-                            return res.getBinary();
+                            return res;
                         })
                         .catch((err) => {
-                            password.data.fill(0);
-                            salt.data.fill(0);
-
                             logger.error('Argon2 error', err);
                             throw err;
                         });

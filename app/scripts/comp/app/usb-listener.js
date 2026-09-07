@@ -15,10 +15,10 @@ const UsbListener = {
             return;
         }
 
-        Events.on('native-modules-yubikeys', (e) => {
-            if (e.numYubiKeys !== this.attachedYubiKeys) {
-                logger.debug(`YubiKeys changed ${this.attachedYubiKeys} => ${e.numYubiKeys}`);
-                this.attachedYubiKeys = e.numYubiKeys;
+        Events.on('native-modules-yubikeys', (count) => {
+            if (count !== this.attachedYubiKeys) {
+                logger.debug(`YubiKeys changed ${this.attachedYubiKeys} => ${count}`);
+                this.attachedYubiKeys = count;
                 Events.emit('usb-devices-changed');
             }
         });
@@ -44,7 +44,9 @@ const UsbListener = {
         }
 
         try {
-            NativeModules.startUsbListener();
+            NativeModules.startUsbListener().catch((e) => {
+                logger.error('Error starting USB listener', e);
+            });
         } catch (e) {
             logger.error('Error starting USB listener', e);
         }
@@ -54,7 +56,9 @@ const UsbListener = {
         logger.info('Stopping USB listener');
 
         try {
-            NativeModules.stopUsbListener();
+            NativeModules.stopUsbListener().catch((e) => {
+                logger.error('Error stopping USB listener', e);
+            });
         } catch (e) {
             logger.error('Error stopping USB listener', e);
         }

@@ -1,6 +1,6 @@
+import { invoke } from '@tauri-apps/api/core';
 import { Launcher } from 'comp/launcher';
 import { Logger } from 'util/logger';
-import { noop } from 'util/fn';
 import { StringFormat } from 'util/formatting/string-format';
 
 const logger = new Logger('transport');
@@ -10,108 +10,88 @@ const Transport = {
         return Launcher.getTempPath(fileName);
     },
 
-    httpGet(config) {
-        let tmpFile;
-        const fs = Launcher.req('fs');
-        if (config.file) {
-            const baseTempPath = Launcher.getTempPath();
-            if (config.cleanupOldFiles) {
-                const allFiles = fs.readdirSync(baseTempPath);
-                for (const file of allFiles) {
-                    if (
-                        file !== config.file &&
-                        StringFormat.replaceVersion(file, '0') ===
-                            StringFormat.replaceVersion(config.file, '0')
-                    ) {
-                        fs.unlinkSync(Launcher.joinPath(baseTempPath, file));
+    async httpGet(config) {
+        const tmpFile = Launcher.getTempPath(config.file || 'http-' + crypto.randomUUID());
+        let result;
+        try {
+            let cached = false;
+            if (config.file) {
+                if (config.cleanupOldFiles) {
+                    const baseTempPath = Launcher.getTempPath();
+                    const allFiles = await invoke('fs_read_dir', { path: baseTempPath });
+                    for (const file of allFiles) {
+                        if (
+                            file !== config.file &&
+                            StringFormat.replaceVersion(file, '0') ===
+                                StringFormat.replaceVersion(config.file, '0')
+                        ) {
+                            await new Promise((resolve, reject) => {
+                                Launcher.deleteFile(Launcher.joinPath(baseTempPath, file), (err) =>
+                                    err ? reject(err) : resolve()
+                                );
+                            });
+                        }
+                    }
+                }
+                const stats = await new Promise((resolve, reject) => {
+                    Launcher.statFile(tmpFile, (stats, err) => {
+                        if (err && err.code !== 'ENOENT') {
+                            reject(err);
+                        } else {
+                            resolve(stats);
+                        }
+                    });
+                });
+                cached = config.cache && stats && !stats.isDir && stats.size > 0;
+                if (cached) {
+                    logger.info('File already downloaded ' + config.url);
+                }
+            }
+            if (!cached) {
+                logger.info('GET ' + config.url);
+                const proxy = await new Promise((resolve) =>
+                    Launcher.resolveProxy(config.url, resolve)
+                );
+                logger.info(
+                    'Request to ' +
+                        config.url +
+                        ' ' +
+                        (proxy ? 'using proxy ' + proxy.host + ':' + proxy.port : 'without proxy')
+                );
+                await invoke('download_to_file', { url: config.url, path: tmpFile });
+            }
+            if (config.file) {
+                result = tmpFile;
+            } else {
+                result = await new Promise((resolve, reject) => {
+                    Launcher.readFile(tmpFile, null, (data, err) =>
+                        err ? reject(err) : resolve(data)
+                    );
+                });
+                if (config.text || config.json) {
+                    result = new TextDecoder().decode(result);
+                }
+                if (config.json) {
+                    try {
+                        result = JSON.parse(result);
+                    } catch (err) {
+                        throw new Error('Error parsing JSON: ' + err.message);
                     }
                 }
             }
-            tmpFile = Launcher.joinPath(baseTempPath, config.file);
-            if (fs.existsSync(tmpFile)) {
-                try {
-                    if (config.cache && fs.statSync(tmpFile).size > 0) {
-                        logger.info('File already downloaded ' + config.url);
-                        return config.success(tmpFile);
-                    } else {
-                        fs.unlinkSync(tmpFile);
-                    }
-                } catch (e) {
-                    fs.unlink(tmpFile, noop);
-                }
+        } catch (err) {
+            logger.error('Cannot GET ' + config.url, err);
+            if (config.file) {
+                await Launcher.deleteFile(tmpFile);
+            }
+            config.error(err);
+            return;
+        } finally {
+            if (!config.file) {
+                await Launcher.deleteFile(tmpFile);
             }
         }
-        const proto = config.url.split(':')[0];
-        logger.info('GET ' + config.url);
-        const opts = Launcher.req('url').parse(config.url);
-        opts.headers = { 'User-Agent': navigator.userAgent };
-        Launcher.resolveProxy(config.url, (proxy) => {
-            logger.info(
-                'Request to ' +
-                    config.url +
-                    ' ' +
-                    (proxy ? 'using proxy ' + proxy.host + ':' + proxy.port : 'without proxy')
-            );
-            if (proxy) {
-                opts.headers.Host = opts.host;
-                opts.host = proxy.host;
-                opts.port = proxy.port;
-                opts.path = config.url;
-            }
-            Launcher.req(proto)
-                .get(opts, (res) => {
-                    logger.info('Response from ' + config.url + ': ' + res.statusCode);
-                    if (res.statusCode === 200) {
-                        if (config.file) {
-                            const file = fs.createWriteStream(tmpFile);
-                            res.pipe(file);
-                            file.on('finish', () => {
-                                file.close(() => {
-                                    config.success(tmpFile);
-                                });
-                            });
-                            file.on('error', (err) => {
-                                config.error(err);
-                            });
-                        } else {
-                            let data = [];
-                            res.on('data', (chunk) => {
-                                data.push(chunk);
-                            });
-                            res.on('end', () => {
-                                data = window.Buffer.concat(data);
-                                if (config.text || config.json) {
-                                    data = data.toString('utf8');
-                                }
-                                if (config.json) {
-                                    try {
-                                        data = JSON.parse(data);
-                                    } catch (e) {
-                                        config.error('Error parsing JSON: ' + e.message);
-                                    }
-                                }
-                                config.success(data);
-                            });
-                        }
-                    } else if (res.headers.location && [301, 302].indexOf(res.statusCode) >= 0) {
-                        if (config.noRedirect) {
-                            return config.error('Too many redirects');
-                        }
-                        config.url = res.headers.location;
-                        config.noRedirect = true;
-                        Transport.httpGet(config);
-                    } else {
-                        config.error('HTTP status ' + res.statusCode);
-                    }
-                })
-                .on('error', (e) => {
-                    logger.error('Cannot GET ' + config.url, e);
-                    if (tmpFile) {
-                        fs.unlink(tmpFile, noop);
-                    }
-                    config.error(e);
-                });
-        });
+        config.success(result);
     }
 };
 

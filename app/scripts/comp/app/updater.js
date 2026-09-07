@@ -244,27 +244,34 @@ const Updater = {
 
     verifySignature(assetFilePath, assetName, callback) {
         logger.info('Verifying update signature', assetName);
-        const fs = Launcher.req('fs');
-        const signaturesTxt = fs.readFileSync(assetFilePath + '.sign', 'utf8');
-        const assetSignatureLine = signaturesTxt
-            .split('\n')
-            .find((line) => line.endsWith(assetName));
-        if (!assetSignatureLine) {
-            logger.error('Signature not found for asset', assetName);
-            callback('Asset signature not found');
-            return;
-        }
-        const signature = kdbxweb.ByteUtils.hexToBytes(assetSignatureLine.split(' ')[0]);
-        const fileBytes = fs.readFileSync(assetFilePath);
-        SignatureVerifier.verify(fileBytes, signature)
-            .catch((e) => {
-                logger.error('Error verifying signature', e);
-                callback('Error verifying signature');
-            })
-            .then((valid) => {
-                logger.info(`Update asset signature is ${valid ? 'valid' : 'invalid'}`);
-                callback(undefined, valid);
+        Launcher.readFile(assetFilePath + '.sign', 'utf8', (signaturesTxt, err) => {
+            if (err) {
+                return callback(err);
+            }
+            const assetSignatureLine = signaturesTxt
+                .split('\n')
+                .find((line) => line.endsWith(assetName));
+            if (!assetSignatureLine) {
+                logger.error('Signature not found for asset', assetName);
+                return callback('Asset signature not found');
+            }
+            const signature = kdbxweb.ByteUtils.hexToBytes(assetSignatureLine.split(' ')[0]);
+            Launcher.readFile(assetFilePath, undefined, (fileBytes, err) => {
+                if (err) {
+                    return callback(err);
+                }
+                SignatureVerifier.verify(fileBytes, signature).then(
+                    (valid) => {
+                        logger.info(`Update asset signature is ${valid ? 'valid' : 'invalid'}`);
+                        callback(undefined, valid);
+                    },
+                    (err) => {
+                        logger.error('Error verifying signature', err);
+                        callback('Error verifying signature');
+                    }
+                );
             });
+        });
     },
 
     getUpdateAssetName(ver) {

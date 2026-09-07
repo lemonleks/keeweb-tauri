@@ -499,8 +499,9 @@ class DetailsView extends View {
             if (!CopyPaste.simpleCopy) {
                 CopyPaste.createHiddenInput(fieldText);
             }
-            const copyRes = CopyPaste.copy(fieldText);
-            this.copyFieldValue({ source: editView, copyRes });
+            Promise.resolve(CopyPaste.copy(fieldText)).then((copyRes) => {
+                this.copyFieldValue({ source: editView, copyRes });
+            });
 
             return true;
         }

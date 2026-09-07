@@ -103,7 +103,7 @@ class AutoTypeEmitter {
     key(key) {
         const mods = Object.keys(this.mod);
         if (typeof key === 'number') {
-            this.withCallback(NativeModules.kbdKeyPressWithCharacter(0, key, mods));
+            this.withCallback(NativeModules.kbdKeyPressWithCharacter('', key, mods));
         } else {
             if (!KeyMap[key]) {
                 return this.callback('Bad key: ' + key);
@@ -115,10 +115,14 @@ class AutoTypeEmitter {
 
     copyPaste(text) {
         setTimeout(() => {
-            Launcher.setClipboardText(text);
-            setTimeout(() => {
-                this.withCallback(NativeModules.kbdShortcut('V'));
-            }, Timeouts.AutoTypeCopyPaste);
+            Launcher.setClipboardText(text).then(
+                () => {
+                    setTimeout(() => {
+                        this.withCallback(NativeModules.kbdShortcut('V'));
+                    }, Timeouts.AutoTypeCopyPaste);
+                },
+                (err) => this.callback(err)
+            );
         }, Timeouts.AutoTypeCopyPaste);
     }
 

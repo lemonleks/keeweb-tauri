@@ -18,7 +18,9 @@ const clearTextAutoTypeLog = !!localStorage.debugAutoType;
 
 const AutoType = {
     enabled: !!(Launcher && Launcher.autoTypeSupported),
-    supportsEventsWithWindowId: !!(Launcher && Launcher.platform() === 'linux'),
+    get supportsEventsWithWindowId() {
+        return !!(Launcher && Launcher.platform() === 'linux');
+    },
     selectEntryView: false,
     running: false,
 

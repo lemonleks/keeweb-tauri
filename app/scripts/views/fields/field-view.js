@@ -95,7 +95,7 @@ class FieldView extends View {
         }
     }
 
-    copyValue() {
+    async copyValue() {
         const field = this.model.name;
         let copyRes;
         if (field) {
@@ -106,7 +106,7 @@ class FieldView extends View {
             if (!CopyPaste.simpleCopy) {
                 CopyPaste.createHiddenInput(text);
             }
-            copyRes = CopyPaste.copy(text);
+            copyRes = await CopyPaste.copy(text);
             this.emit('copy', { source: this, copyRes });
             return;
         }
@@ -118,7 +118,7 @@ class FieldView extends View {
         range.selectNodeContents(this.valueEl[0]);
         selection.removeAllRanges();
         selection.addRange(range);
-        copyRes = CopyPaste.copy(this.valueEl[0].innerText || this.valueEl.text());
+        copyRes = await CopyPaste.copy(this.valueEl[0].innerText || this.valueEl.text());
         if (copyRes) {
             selection.removeAllRanges();
             this.emit('copy', { source: this, copyRes });

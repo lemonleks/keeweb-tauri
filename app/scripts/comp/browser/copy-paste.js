@@ -1,27 +1,46 @@
 import { Events } from 'framework/events';
 import { Launcher } from 'comp/launcher';
 import { AppSettingsModel } from 'models/app-settings-model';
+import { Logger } from 'util/logger';
+
+const logger = new Logger('copy-paste');
 
 const CopyPaste = {
     simpleCopy: !!(Launcher && Launcher.clipboardSupported),
 
     copy(text) {
         if (this.simpleCopy) {
-            Launcher.setClipboardText(text);
             const clipboardSeconds = AppSettingsModel.clipboardSeconds;
+            const written = Launcher.setClipboardText(text);
             if (clipboardSeconds > 0) {
-                const clearClipboard = () => {
-                    if (Launcher.getClipboardText() === text) {
-                        Launcher.clearClipboardText();
-                    }
+                const clearClipboard = () =>
+                    written
+                        .then(() => Launcher.getClipboardText())
+                        .then((current) => {
+                            if (current === text) {
+                                return Launcher.clearClipboardText();
+                            }
+                        })
+                        .catch((err) => logger.error('Error clearing clipboard', err));
+                const onClose = () => {
+                    Launcher.clipboardClearPending = Promise.all([
+                        Launcher.clipboardClearPending,
+                        clearClipboard()
+                    ]);
                 };
-                Events.on('main-window-will-close', clearClipboard);
+                Events.on('main-window-will-close', onClose);
                 setTimeout(() => {
                     clearClipboard();
-                    Events.off('main-window-will-close', clearClipboard);
+                    Events.off('main-window-will-close', onClose);
                 }, clipboardSeconds * 1000);
             }
-            return { success: true, seconds: clipboardSeconds };
+            return written.then(
+                () => ({ success: true, seconds: clipboardSeconds }),
+                (err) => {
+                    logger.error('Error copying to clipboard', err);
+                    return false;
+                }
+            );
         } else {
             try {
                 if (document.execCommand('copy')) {

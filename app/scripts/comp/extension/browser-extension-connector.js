@@ -1,3 +1,5 @@
+import { invoke } from '@tauri-apps/api/core';
+import { Events } from 'framework/events';
 import { Launcher } from 'comp/launcher';
 import { Logger } from 'util/logger';
 import { ProtocolImpl } from './protocol-impl';
@@ -40,15 +42,13 @@ const BrowserExtensionConnector = {
         this.browserWindowMessage = this.browserWindowMessage.bind(this);
 
         if (Launcher) {
-            const { ipcRenderer } = Launcher.electron();
-
-            ipcRenderer.on('browserExtensionSocketConnected', (e, socketId, connectionInfo) =>
+            Events.on('browser-extension-socket-connected', ({ socketId, connectionInfo }) =>
                 this.socketConnected(socketId, connectionInfo)
             );
-            ipcRenderer.on('browserExtensionSocketClosed', (e, socketId) =>
+            Events.on('browser-extension-socket-closed', ({ socketId }) =>
                 this.socketClosed(socketId)
             );
-            ipcRenderer.on('browserExtensionSocketRequest', (e, socketId, request) =>
+            Events.on('browser-extension-socket-request', ({ socketId, request }) =>
                 this.socketRequest(socketId, request)
             );
 
@@ -117,20 +117,23 @@ const BrowserExtensionConnector = {
     },
 
     enable(browser, extension, enabled) {
-        const { ipcRenderer } = Launcher.electron();
-        ipcRenderer.invoke('browserExtensionConnectorEnable', browser, extension, enabled);
+        return invoke('browser_extension_connector_enable', {
+            browser,
+            extension,
+            enabled
+        }).catch((err) => logger.error('Error installing extension', err));
     },
 
     async startDesktopAppListener() {
-        const { ipcRenderer } = Launcher.electron();
-        ipcRenderer.invoke('browserExtensionConnectorStart', {
-            appleTeamId: RuntimeInfo.appleTeamId
-        });
+        return invoke('browser_extension_connector_start', {
+            config: { appleTeamId: RuntimeInfo.appleTeamId }
+        }).catch((err) => logger.error('Error starting browser extension connector', err));
     },
 
     stopDesktopAppListener() {
-        const { ipcRenderer } = Launcher.electron();
-        ipcRenderer.invoke('browserExtensionConnectorStop');
+        return invoke('browser_extension_connector_stop').catch((err) =>
+            logger.error('Error stopping browser extension connector', err)
+        );
     },
 
     browserWindowMessage(e) {
@@ -179,13 +182,16 @@ const BrowserExtensionConnector = {
     },
 
     sendSocketEvent(data) {
-        const { ipcRenderer } = Launcher.electron();
-        ipcRenderer.invoke('browserExtensionConnectorSocketEvent', data);
+        return invoke('browser_extension_connector_socket_event', { data }).catch((err) =>
+            logger.error('Error sending browser extension event', err)
+        );
     },
 
     sendSocketResult(socketId, data) {
-        const { ipcRenderer } = Launcher.electron();
-        ipcRenderer.invoke('browserExtensionConnectorSocketResult', socketId, data);
+        return invoke('browser_extension_connector_socket_result', {
+            socketId,
+            result: data
+        }).catch((err) => logger.error('Error sending browser extension response', err));
     },
 
     sendEvent(data) {
@@ -229,8 +235,9 @@ const BrowserExtensionConnector = {
     terminateConnection(connectionId) {
         connectionId = +connectionId;
         if (Launcher) {
-            const { ipcRenderer } = Launcher.electron();
-            ipcRenderer.invoke('browserExtensionConnectorCloseSocket', connectionId);
+            return invoke('browser_extension_connector_close_socket', {
+                socketId: connectionId
+            }).catch((err) => logger.error('Error closing browser extension connection', err));
         } else {
             ProtocolImpl.deleteConnection(connectionId);
         }

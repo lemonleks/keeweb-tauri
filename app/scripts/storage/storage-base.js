@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core';
 import { Events } from 'framework/events';
 import { Links } from 'const/links';
 import { AppSettingsModel } from 'models/app-settings-model';
@@ -139,31 +140,52 @@ class StorageBase {
         xhr.send(data);
     }
 
-    _httpRequestLauncher(config, onLoad) {
-        Launcher.remoteApp().httpRequest(
-            config,
-            (level, ...args) => this.logger[level](...args),
-            ({ status, response, headers }) => {
-                response = Buffer.from(response, 'hex');
-                if (config.responseType === 'json') {
-                    try {
-                        response = JSON.parse(response.toString('utf8'));
-                    } catch (e) {
-                        return config.error && config.error('json parse error');
-                    }
-                } else {
-                    response = response.buffer.slice(
-                        response.byteOffset,
-                        response.byteOffset + response.length
-                    );
-                }
-                onLoad({
-                    status,
-                    response,
-                    getResponseHeader: (name) => headers[name.toLowerCase()]
-                });
+    async _httpRequestLauncher(config, onLoad) {
+        let res;
+        try {
+            let data = null;
+            if (config.data !== undefined && config.data !== null) {
+                const parts = config.dataIsMultipart ? config.data : [config.data];
+                const body = new Blob(
+                    parts.map((part) => (Array.isArray(part) ? new Uint8Array(part) : part))
+                );
+                data = Array.from(new Uint8Array(await body.arrayBuffer()));
             }
-        );
+            res = await invoke('http_request', {
+                config: {
+                    url: config.url,
+                    method: config.method || 'GET',
+                    headers: Object.fromEntries(
+                        Object.entries({
+                            'User-Agent': navigator.userAgent,
+                            ...config.headers
+                        }).map(([name, value]) => [name, String(value)])
+                    ),
+                    data,
+                    timeoutMs: config.timeoutMs
+                }
+            });
+        } catch (err) {
+            this.logger.error('HTTP error', config.method || 'GET', config.url, err);
+            return (
+                config.error && config.error(err === 'timeout' ? 'timeout' : 'network error', {})
+            );
+        }
+        let response = new Uint8Array(res.data);
+        if (config.responseType === 'json') {
+            try {
+                response = JSON.parse(new TextDecoder().decode(response));
+            } catch (err) {
+                return config.error && config.error('json parse error', { status: res.status });
+            }
+        } else {
+            response = response.buffer;
+        }
+        onLoad({
+            status: res.status,
+            response,
+            getResponseHeader: (name) => res.headers[name.toLowerCase()]
+        });
     }
 
     _openPopup(url, title, width, height, extras) {

@@ -88,4 +88,5 @@ keys
 # #
 
 node_modules/
+src-tauri/binaries/
 

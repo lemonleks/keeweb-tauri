@@ -159,7 +159,7 @@ function config(options) {
                 { test: /handlebars/, loader: 'strip-sourcemap-loader' },
                 {
                     test: /\.js$/,
-                    exclude: /(node_modules|babel-helpers\.js)/,
+                    exclude: /node_modules[\\/](?!@tauri-apps[\\/])|babel-helpers\.js/,
                     loader: 'babel-loader',
                     options: { cacheDirectory: true }
                 },

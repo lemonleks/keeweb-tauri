@@ -1,3 +1,4 @@
+import * as kdbxweb from 'kdbxweb';
 import { Events } from 'framework/events';
 import { Logger } from 'util/logger';
 import { YubiKey } from 'comp/app/yubikey';
@@ -23,14 +24,14 @@ const ChalRespCalculator = {
         }
         return (challenge) => {
             return new Promise((resolve, reject) => {
-                challenge = Buffer.from(challenge);
-                const hexChallenge = challenge.toString('hex');
+                challenge = new Uint8Array(challenge);
+                const hexChallenge = kdbxweb.ByteUtils.bytesToHex(challenge);
 
                 const cacheKey = this.getCacheKey(params);
                 const respFromCache = this.cache[cacheKey]?.[hexChallenge];
                 if (respFromCache) {
                     logger.debug('Found ChalResp in cache');
-                    return resolve(Buffer.from(respFromCache, 'hex'));
+                    return resolve(kdbxweb.ByteUtils.hexToBytes(respFromCache));
                 }
 
                 if (!AppSettingsModel.enableUsb) {
@@ -107,8 +108,8 @@ const ChalRespCalculator = {
                 this.cache[cacheKey] = {};
             }
 
-            const hexChallenge = challenge.toString('hex');
-            this.cache[cacheKey][hexChallenge] = response.toString('hex');
+            const hexChallenge = kdbxweb.ByteUtils.bytesToHex(challenge);
+            this.cache[cacheKey][hexChallenge] = kdbxweb.ByteUtils.bytesToHex(response);
 
             logger.info('Calculated YubiKey ChalResp');
             callback(null, response);

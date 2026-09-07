@@ -424,11 +424,11 @@ class OpenView extends View {
             .attr('accept', ext || '')
             .val(null);
 
-        if (Launcher && Launcher.openFileChooser) {
+        if (Launcher && Launcher.openFileChooser && reading === 'fileData') {
             Launcher.openFileChooser((err, file) => {
                 if (err) {
                     logger.error('Error opening file chooser', err);
-                } else {
+                } else if (file) {
                     this.processFile(file);
                 }
             });
@@ -680,15 +680,14 @@ class OpenView extends View {
         if (this.encryptedPassword && !this.params.password.length) {
             logger.debug('Encrypting password using hardware decryption');
             const touchIdPrompt = Locale.bioOpenAuthPrompt.replace('{}', this.params.name);
-            const encryptedPassword = kdbxweb.ProtectedValue.fromBase64(
-                this.encryptedPassword.value
-            );
+            const encryptedPassword = kdbxweb.ByteUtils.base64ToBytes(this.encryptedPassword.value);
             Events.emit('hardware-decrypt-started');
             NativeModules.hardwareDecrypt(encryptedPassword, touchIdPrompt)
                 .then((password) => {
                     Events.emit('hardware-decrypt-finished');
 
-                    this.params.password = password;
+                    this.params.password = kdbxweb.ProtectedValue.fromBinary(password);
+                    password.fill(0);
                     this.params.encryptedPassword = this.encryptedPassword;
                     this.model.openFile(this.params, (err) => this.openDbComplete(err));
                 })

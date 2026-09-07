@@ -348,7 +348,6 @@ class AppView extends View {
     }
 
     launcherBeforeQuit() {
-        // this is currently called only on macos
         const event = {
             preventDefault() {}
         };

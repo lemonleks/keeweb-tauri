@@ -32,9 +32,9 @@ import { Storage } from './storage';
 
 StartProfiler.milestone('loading modules');
 
-const ready = (Launcher && Launcher.ready) || $;
+const ready = Promise.all([new Promise((resolve) => $(resolve)), Launcher?.ready]);
 
-ready(() => {
+ready.then(() => {
     StartProfiler.milestone('document ready');
 
     const appModel = new AppModel();
@@ -155,7 +155,7 @@ ready(() => {
                 localStorage.skipHttpsWarning || appModel.settings.skipHttpsWarning;
             const protocolIsInsecure = ['https:', 'file:', 'app:'].indexOf(location.protocol) < 0;
             const hostIsInsecure = location.hostname !== 'localhost';
-            if (protocolIsInsecure && hostIsInsecure && !skipHttpsWarning) {
+            if (!Launcher && protocolIsInsecure && hostIsInsecure && !skipHttpsWarning) {
                 return new Promise((resolve) => {
                     Alerts.error({
                         header: Locale.appSecWarn,
