@@ -1,10 +1,10 @@
 [package]
-name = "keeweb"
+name = "lemonkee"
 version = "1.18.9"
 edition = "2021"
 
 [lib]
-name = "keeweb_lib"
+name = "lemonkee_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
