@@ -9,6 +9,7 @@ mod paths;
 mod power;
 mod shortcuts;
 mod spawn;
+mod webkit_prefs;
 mod window;
 
 use std::{collections::{HashMap, VecDeque}, path::PathBuf, sync::{atomic::{AtomicBool, AtomicU64, Ordering}, Mutex}};

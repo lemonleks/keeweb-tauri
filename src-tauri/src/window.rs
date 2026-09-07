@@ -156,6 +156,7 @@ pub fn create_main_window(app: &AppHandle) -> Result<WebviewWindow, String> {
         builder.decorations(false)
     } else { builder };
     let window = builder.build().map_err(|err| err.to_string())?;
+    crate::webkit_prefs::apply(&window);
     let dark = window.theme().map_err(|err| err.to_string())? == tauri::Theme::Dark;
     window.set_background_color(Some(background_color(&settings, dark))).map_err(|err| err.to_string())?;
     apply_menu(app, &locale).map_err(|err| err.to_string())?;
@@ -507,11 +508,22 @@ fn show_window(app: &AppHandle, window: &WebviewWindow) -> Result<(), String> {
     if maximized {
         window.maximize().map_err(|err| err.to_string())?;
     }
-    window.set_focus().map_err(|err| err.to_string())?;
-    if cfg!(debug_assertions) && std::env::var_os("KEEWEB_DEV_SMOKE").is_some() {
-        // Smoke runs need a visible page: WebKit freezes timers/rAF for occluded windows.
-        window.set_visible_on_all_workspaces(true).map_err(|err| err.to_string())?;
-        window.set_always_on_top(true).map_err(|err| err.to_string())?;
+    let smoke = cfg!(debug_assertions) && std::env::var_os("KEEWEB_DEV_SMOKE").is_some();
+    if smoke {
+        // Smoke runs: the page must stay visible (WebKit freezes timers/rAF for occluded
+        // windows) but must not steal focus or cover the user's work — park it, unfocused,
+        // at the bottom-right corner of the screen.
+        if let Ok(Some(monitor)) = window.current_monitor() {
+            let size = monitor.size();
+            let scale = monitor.scale_factor();
+            window.set_size(LogicalSize::new(700.0, 400.0)).map_err(|err| err.to_string())?;
+            window.set_position(LogicalPosition::new(
+                size.width as f64 / scale - 700.0,
+                size.height as f64 / scale - 400.0,
+            )).map_err(|err| err.to_string())?;
+        }
+    } else {
+        window.set_focus().map_err(|err| err.to_string())?;
     }
     let shell = app.state::<Shell>();
     shell.hidden_in_tray.store(false, Ordering::SeqCst);
